@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Конструктор КП v6</title>
+<style>
+  * { box-sizing: border-box; }
+  :root { --accent:#e67e22; --headline:#2c3e50; --border:#ccc; }
+  body { margin:0; font-family: Arial, sans-serif; background:#eef1f5; color:#222; }
+  .app { display:grid; grid-template-columns: 440px 1fr; gap:20px; padding:20px; max-width:1600px; margin:0 auto; }
+  .panel { background:#fff; border-radius:10px; padding:20px; box-shadow:0 2px 10px rgba(0,0,0,0.08); max-height:96vh; overflow-y:auto; }
+  .panel h2 { margin-top:0; font-size:18px; color: var(--headline); border-bottom:2px solid var(--accent); padding-bottom:8px; }
+  label { display:block; font-size:13px; font-weight:600; margin:10px 0 4px; color: var(--headline); }
+  label.check { display:flex; align-items:center; gap:6px; font-weight:normal; margin:5px 0; cursor:pointer; font-size:13px; }
+  label.check input { width:auto; }
+  input[type="text"], input[type="number"], select {
+    width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:5px;
+    font-size:13px; font-family:inherit; background:#fff; color:#222;
+  }
+  input[type="color"] { width:100%; height:38px; padding:3px; border:1px solid var(--border); border-radius:5px; background:#fff; cursor:pointer; }
+  input:focus, select:focus { outline:none; border-color: var(--accent); }
+  input.invalid { border-color:#c0392b; background:#fdeaea; }
+  .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  button {
+    background:#2c3e50; color:#fff; border:none; padding:10px 16px; border-radius:5px;
+    font-size:13px; cursor:pointer; margin:8px 4px 0 0; font-family:inherit;
+  }
+  button:hover { background:#1a252f; }
+  button.accent { background: var(--accent); } button.accent:hover { filter: brightness(.9); }
+  button.green  { background:#27ae60; } button.green:hover { background:#1e8449; }
+  button.blue   { background:#2980b9; } button.blue:hover  { background:#21618c; }
+  button.gray   { background:#7f8c8d; } button.gray:hover  { background:#5d6d6e; }
+  button.small  { padding:4px 8px; font-size:12px; background:#c0392b; margin:0; }
+  button.tiny   { padding:5px 9px; font-size:11px; margin-top:6px; background:#7f8c8d; }
+  .toolbar { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:15px; padding-bottom:12px; border-bottom:1px dashed var(--border); }
+  .toolbar button { margin:0; padding:7px 12px; font-size:12px; }
+  .status { font-size:11px; color:#27ae60; margin-top:6px; font-style:italic; }
+  .status.err { color:#c0392b; }
+  .img-preview { max-width:140px; max-height:60px; margin-top:6px; display:none; border:1px solid var(--border); padding:4px; border-radius:4px; }
+
+  details.section { border:1px solid var(--border); border-radius:8px; margin: 12px 0; overflow:hidden; background: #fafafa; }
+  details.section > summary {
+    cursor:pointer; padding:10px 14px; font-weight:bold; font-size:13.5px;
+    color: var(--headline); background: #f0f2f5;
+    list-style:none; user-select:none; display:flex; align-items:center; gap:8px;
+  }
+  details.section > summary::-webkit-details-marker { display:none; }
+  details.section > summary::before {
+    content:"▸"; display:inline-block; transition: transform .15s;
+    color: var(--accent); font-size:14px;
+  }
+  details.section[open] > summary::before { transform: rotate(90deg); }
+  details.section > .body { padding: 4px 14px 14px; }
+
+  .est-row { display:grid; grid-template-columns: 2fr 55px 60px 70px 75px 28px; gap:4px; margin-bottom:5px; align-items:center; }
+  .est-row input { padding:5px; font-size:12px; }
+
+  #preview {
+    background:#fff; padding:40px;
+    font-family: var(--doc-font, 'Times New Roman'), serif;
+    font-size: var(--doc-size, 14px);
+    line-height:1.5; color:#222;
+  }
+  #preview h1 { text-align:center; font-size:22px; text-transform:uppercase; border-bottom:3px solid #2c3e50; padding-bottom:10px; margin-bottom:5px; color:#2c3e50; }
+  #preview .subtitle { text-align:center; font-style:italic; margin-top:0; }
+  #preview h2 { font-size:16px; color:#2c3e50; border-left:4px solid var(--accent); padding-left:10px; margin-top:25px; }
+  #preview .header-info { background:#f4f4f4; padding:12px 15px; border-radius:5px; margin:20px 0; }
+  #preview .header-info p { margin:4px 0; }
+  #preview table { width:100%; border-collapse:collapse; margin:15px 0; font-size:0.93em; }
+  #preview th, #preview td { border:1px solid #999; padding:8px; text-align:center; }
+  #preview th { background:#2c3e50; color:#fff; }
+  #preview tr:nth-child(even) { background:#f9f9f9; }
+  #preview .total-row { font-weight:bold; background:#ecf0f1 !important; }
+  #preview .final-row { background:#fff2e0 !important; font-size:1.07em; }
+  #preview .contacts { background: var(--accent); color:#fff; padding:15px 20px; border-radius:5px; margin-top:25px; }
+  #preview .contacts p { margin:4px 0; }
+  #preview .highlight { color: var(--accent); font-weight:bold; }
+  #preview .note { font-size:12px; color:#666; font-style:italic; }
+  #preview .logo-block { text-align:center; margin-bottom:15px; }
+  #preview .logo-block img { max-height:80px; max-width:250px; }
+  #preview .sign-block { display:flex; justify-content:space-between; align-items:flex-end; margin-top:35px; gap:30px; }
+  #preview .sign-item { flex:1; text-align:center; font-size:13px; }
+  #preview .sign-item img { max-height:70px; max-width:180px; display:block; margin:0 auto 4px; }
+  #preview .sign-line { border-top:1px solid #333; margin-top:40px; padding-top:4px; font-size:12px; color:#555; }
+
+  .modal-overlay { position: fixed; inset:0; background: rgba(0,0,0,0.7); display: none; align-items:center; justify-content:center; z-index:1000; padding:20px; }
+  .modal-overlay.open { display:flex; }
+  .modal-window { background:#fff; max-width:900px; width:100%; max-height:92vh; overflow-y:auto; border-radius:8px; position:relative; }
+  .modal-toolbar { position: sticky; top:0; background: #2c3e50; color:#fff; padding:10px 15px; display:flex; justify-content:space-between; align-items:center; }
+  .modal-toolbar span { font-size:13px; }
+  .modal-close { background: transparent; border:1px solid #fff; color:#fff; padding:4px 10px; border-radius:4px; font-size:12px; cursor:pointer; margin:0; }
+
+  @media print {
+    body { background:#fff; }
+    .app { display:block; padding:0; max-width:none; }
+    .panel { display:none !important; }
+    #preview { padding:0; box-shadow:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="panel">
+    <h2>Конструктор КП — расчистка территории</h2>
+
+    <div class="toolbar">
+      <button class="green" onclick="saveDraft()">💾 Черновик</button>
+      <button onclick="document.getElementById('importFile').click()">📂 Загрузить</button>
+      <button class="accent" onclick="clearAll()">🗑 Очистить</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importDraft(event)">
+    </div>
+    <div class="status" id="statusMsg">Автосохранение включено</div>
+
+    <details class="section" open>
+      <summary>🎨 Оформление</summary>
+      <div class="body">
+        <label>Акцентный цвет</label>
+        <input type="color" id="accentColor" value="#e67e22" onchange="applyAccent(this.value); updateAll();">
+        <label>Шрифт документа</label>
+        <select id="docFont" onchange="applyDocStyle(); autoSave();">
+          <option value="'Times New Roman', serif">Times New Roman</option>
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="Georgia, serif">Georgia</option>
+          <option value="'Segoe UI', sans-serif">Segoe UI</option>
+          <option value="Calibri, sans-serif">Calibri</option>
+        </select>
+        <label>Размер шрифта документа</label>
+        <select id="docSize" onchange="applyDocStyle(); autoSave();">
+          <option value="12px">12 pt</option>
+          <option value="13px">13 pt</option>
+          <option value="14px" selected>14 pt</option>
+          <option value="15px">15 pt</option>
+          <option value="16px">16 pt</option>
+        </select>
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary>1. Шаблон документа</summary>
+      <div class="body">
+        <select id="template" onchange="updateAll()">
+          <option value="izhs">Расчистка под ИЖС</option>
+          <option value="promo">Промышленная площадка</option>
+          <option value="demol">Снос зданий и сооружений</option>
+          <option value="universal">Универсальный</option>
+        </select>
+      </div>
+    </details>
+
+    <details class="section">
+      <summary>2. Разделы в документе</summary>
+      <div class="body">
+        <label class="check"><input type="checkbox" id="secWhy"   checked onchange="updateAll()"> «Почему выбирают нас»</label>
+        <label class="check"><input type="checkbox" id="secSteps" checked onchange="updateAll()"> «Этапы выполнения работ»</label>
+        <label class="check"><input type="checkbox" id="secTerms" checked onchange="updateAll()"> «Условия сотрудничества»</label>
+        <label class="check"><input type="checkbox" id="secUtil"  checked onchange="updateAll()"> Пункт «Утилизация»</label>
+        <label class="check"><input type="checkbox" id="secPlan"  checked onchange="updateAll()"> Пункт «Вертикальная планировка»</label>
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary>3. Реквизиты</summary>
+      <div class="body">
+        <label>Логотип компании (PNG/JPG)</label>
+        <input type="file" id="logoInput" accept="image/*" onchange="loadImage(event,'logo')">
+        <img id="logoPreview" class="img-preview" alt="">
+        <button class="tiny" onclick="removeImage('logo')">Убрать логотип</button>
+
+        <label>Название вашей компании *</label>
+        <input type="text" id="myCompany" oninput="updateAll()" placeholder="ООО «СтройРасчистка»">
+        <label>Заказчик *</label>
+        <input type="text" id="client" oninput="updateAll()" placeholder="ООО «Застройщик»">
+        <div class="row-2">
+          <div><label>Дата</label><input type="text" id="date" oninput="updateAll()"></div>
+          <div><label>Исх. номер</label><input type="text" id="docnum" oninput="updateAll()"></div>
+        </div>
+        <button class="blue" onclick="autoNumber()">🔄 Авто-номер и дата</button>
+
+        <label>ФИО руководителя (обращение) *</label>
+        <input type="text" id="contactName" oninput="updateAll()" placeholder="Иван Иванович">
+        <label>Опыт компании (лет)</label>
+        <input type="text" id="years" oninput="updateAll()" placeholder="10">
+        <div class="row-2">
+          <div><label>Площадь участка *</label><input type="text" id="area" oninput="updateAll()" placeholder="2,5 Га"></div>
+          <div><label>Срок выполнения *</label><input type="text" id="duration" oninput="updateAll()" placeholder="14 рабочих дней"></div>
+        </div>
+        <label>Адрес участка *</label>
+        <input type="text" id="address" oninput="updateAll()" placeholder="Московская обл., г. Химки, ул. ...">
+        <label>Техника в наличии</label>
+        <input type="text" id="tech" oninput="updateAll()" value="мульчеры, экскаваторы, самосвалы, дробилки">
+        <label>Нормативы</label>
+        <input type="text" id="standards" oninput="updateAll()" value="СНиП, ГОСТ, ТБ">
+        <label>Аванс</label>
+        <input type="text" id="advance" oninput="updateAll()" value="30%">
+        <label>График работ</label>
+        <input type="text" id="schedule" oninput="updateAll()" value="Работаем в 2 смены, включая выходные">
+        <label>Менеджер проекта</label>
+        <input type="text" id="manager" oninput="updateAll()" placeholder="Петров П.П.">
+        <label>Телефон *</label>
+        <input type="text" id="phone" oninput="updateAll()" placeholder="+7 (999) 123-45-67">
+        <label>Email</label>
+        <input type="text" id="email" oninput="updateAll()" placeholder="info@company.ru">
+        <label>Сайт</label>
+        <input type="text" id="website" oninput="updateAll()" placeholder="www.company.ru">
+        <label>НДС</label>
+        <input type="text" id="vat" oninput="updateAll()" value="с учётом НДС">
+      </div>
+    </details>
+
+    <details class="section" open>
+      <summary>4. Смета</summary>
+      <div class="body">
+        <div id="estRows"></div>
+        <button class="accent" onclick="addRow()">+ Добавить строку</button>
+        <label style="margin-top:16px;">Скидка, %</label>
+        <input type="number" id="discount" oninput="updateAll()" value="0" min="0" max="90">
+      </div>
+    </details>
+
+    <details class="section">
+      <summary>5. Подпись и печать</summary>
+      <div class="body">
+        <label>Подпись руководителя (PNG)</label>
+        <input type="file" id="signInput" accept="image/*" onchange="loadImage(event,'sign')">
+        <img id="signPreview" class="img-preview" alt="">
+        <button class="tiny" onclick="removeImage('sign')">Убрать подпись</button>
+        <label>Печать компании (PNG)</label>
+        <input type="file" id="stampInput" accept="image/*" onchange="loadImage(event,'stamp')">
+        <img id="stampPreview" class="img-preview" alt="">
+        <button class="tiny" onclick="removeImage('stamp')">Убрать печать</button>
+        <label>ФИО подписанта</label>
+        <input type="text" id="signName" oninput="updateAll()" placeholder="Директор Иванов И.И.">
+      </div>
+    </details>
+
+    <h2 style="margin-top:25px;">Скачать</h2>
+    <button class="accent" onclick="downloadPDF()">📄 Скачать PDF</button>
+    <button onclick="downloadWord()">💾 Скачать Word (.doc)</button>
+    <button class="gray" onclick="openPreview()">👁 Просмотр «как в Word»</button>
+    <button class="gray" onclick="window.print()">🖨 Печать</button>
+  </div>
+
+  <div id="preview">
+    <div class="logo-block" id="logoBlock" style="display:none;">
+      <img id="logoInDoc" alt="">
+    </div>
+    <h1>Коммерческое предложение</h1>
+    <p class="subtitle" id="p-subtitle">—</p>
+
+    <div class="header-info">
+      <p><strong>Кому:</strong> <span id="p-client">—</span></p>
+      <p><strong>От:</strong> <span id="p-myCompany">—</span></p>
+      <p><strong>Дата:</strong> <span id="p-date">—</span></p>
+      <p><strong>Исх. номер:</strong> <span id="p-docnum">—</span></p>
+    </div>
+
+    <h2>1. Вступление</h2>
+    <p>Уважаемый(ая) <span id="p-contactName">—</span>!</p>
+    <p id="p-intro">—</p>
+    <p>Наша команда имеет <strong><span id="p-years">—</span></strong> лет опыта в работе с объектами любой сложности.</p>
+
+    <h2>2. Предмет предложения</h2>
+    <p>Мы готовы выполнить полный комплекс работ по расчистке территории площадью <strong><span id="p-area">—</span></strong>, расположенной по адресу: <strong><span id="p-address">—</span></strong>.</p>
+    <p><strong>Состав работ:</strong></p>
+    <ul id="p-worksList"></ul>
+
+    <div id="blockWhy">
+      <h2>3. Почему выбирают нас</h2>
+      <ol>
+        <li><strong>Собственный парк техники.</strong> В наличии: <span id="p-tech">—</span>.</li>
+        <li><strong>Безопасность.</strong> Работы ведутся в соответствии с <span id="p-standards">—</span>.</li>
+        <li><strong>Прозрачность.</strong> Фиксированная смета.</li>
+        <li><strong>Комплексный подход.</strong> Участок готов к передаче геодезистам.</li>
+        <li id="liUtil"><strong>Утилизация.</strong> Договоры с полигонами ТБО.</li>
+      </ol>
+    </div>
+
+    <div id="blockSteps">
+      <h2>4. Этапы выполнения работ</h2>
+      <ol>
+        <li><strong>Выезд на объект и оценка.</strong></li>
+        <li><strong>Разработка сметы и графика.</strong></li>
+        <li><strong>Мобилизация техники и персонала.</strong></li>
+        <li><strong>Основные работы.</strong></li>
+        <li><strong>Сдача объекта.</strong></li>
+      </ol>
+    </div>
+
+    <h2>5. Стоимость и объём работ</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Наименование работ</th>
+          <th>Ед. изм.</th>
+          <th>Объём</th>
+          <th>Цена за ед., руб.</th>
+          <th>Сумма, руб.</th>
+        </tr>
+      </thead>
+      <tbody id="p-estBody"></tbody>
+      <tfoot>
+        <tr class="total-row"><td colspan="4">ИТОГО:</td><td id="p-total">0</td></tr>
+        <tr class="total-row" id="rowDiscount" style="display:none;">
+          <td colspan="4">Скидка</td><td id="p-discount-val">0%</td>
+        </tr>
+        <tr class="total-row final-row" id="rowFinal" style="display:none;">
+          <td colspan="4">ИТОГО со скидкой:</td>
+          <td id="p-total-final">0</td>
+        </tr>
+      </tfoot>
+    </table>
+    <p class="note">* Цены указаны <span id="p-vat">—</span>.</p>
+    <p class="note">* Смета предварительная.</p>
+
+    <h2>6. Сроки выполнения работ</h2>
+    <p>Срок выполнения — <strong><span id="p-duration">—</span></strong> с момента подписания договора и внесения аванса.</p>
+    <p>График: <span id="p-schedule">—</span>.</p>
+
+    <div id="blockTerms">
+      <h2>7. Условия сотрудничества</h2>
+      <ul>
+        <li><strong>Аванс:</strong> <span id="p-advance">—</span>.</li>
+        <li><strong>Окончательный расчёт:</strong> по акту выполненных работ.</li>
+        <li><strong>Гарантия:</strong> чистота участка подтверждается актом.</li>
+      </ul>
+    </div>
+
+    <h2>8. Контакты</h2>
+    <div class="contacts">
+      <p>Готовы приступить к работе в кратчайшие сроки.</p>
+      <p><strong>Менеджер:</strong> <span id="p-manager">—</span></p>
+      <p><strong>Телефон:</strong> <span class="highlight" id="p-phone">—</span></p>
+      <p><strong>Email:</strong> <span id="p-email">—</span></p>
+      <p><strong>Сайт:</strong> <span id="p-website">—</span></p>
+    </div>
+
+    <div class="sign-block" id="signBlock" style="display:none;">
+      <div class="sign-item">
+        <img id="signInDoc" alt="">
+        <div class="sign-line" id="p-signName">—</div>
+      </div>
+      <div class="sign-item" id="stampWrap" style="display:none;">
+        <img id="stampInDoc" alt="">
+        <div class="sign-line">М.П.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalPreview">
+  <div class="modal-window">
+    <div class="modal-toolbar">
+      <span>Предпросмотр (то, как будет выглядеть в Word)</span>
+      <button class="modal-close" onclick="closePreview()">✕ Закрыть</button>
+    </div>
+    <div id="modalContent" style="padding:0;"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+var fieldIds = ["myCompany","client","date","docnum","contactName","years","area",
+                "address","tech","standards","advance","schedule","manager",
+                "phone","email","website","vat","duration","signName"];
+var requiredFields = ["myCompany","client","contactName","area","duration","address","phone"];
+
+var STORAGE_KEY = "kp_builder_v6";
+var COUNTER_KEY = "kp_builder_counter_v6";
+var IMG_PREFIX  = "kp_builder_img_v6_";
+
+var templates = {
+  izhs: {
+    subtitle: "на выполнение работ по расчистке территории под индивидуальное жилищное строительство",
+    intro: "Компания «{COMPANY}» предлагает вам профессиональные услуги по подготовке земельного участка под ИЖС. Аккуратно расчистим территорию, сохраним плодородный слой и подготовим участок к разметке фундамента.",
+    works: [
+      "Валка деревьев (включая опасные и аварийные).",
+      "Корчевка пней и уборка порубочных остатков.",
+      "Снос ветхих построек и старых фундаментов.",
+      "Расчистка от кустарника и мелколесья.",
+      "Вывоз и утилизация растительного мусора.",
+      "Сохранение плодородного слоя для последующего благоустройства."
+    ]
+  },
+  promo: {
+    subtitle: "на расчистку промышленной площадки под застройку",
+    intro: "Компания «{COMPANY}» предлагает вам полный комплекс работ по подготовке промышленной площадки к строительству. Работаем с крупными объёмами, соблюдаем нормативы и графики.",
+    works: [
+      "Валка деревьев и корчевка пней на большой площади.",
+      "Демонтаж ЖБ-конструкций и промышленных фундаментов.",
+      "Снос металлоконструкций и трубопроводов.",
+      "Перемещение грунта и вертикальная планировка.",
+      "Дробление бетона и железобетона.",
+      "Вывоз и утилизация строительного мусора."
+    ]
+  },
+  demol: {
+    subtitle: "на снос зданий, сооружений и расчистку территории",
+    intro: "Компания «{COMPANY}» предлагает услуги по промышленному сносу зданий и сооружений любой сложности. Обеспечиваем полный цикл: от демонтажа до вывоза и утилизации отходов.",
+    works: [
+      "Полный или частичный снос зданий и сооружений.",
+      "Демонтаж фундаментов и подвальных помещений.",
+      "Разборка металлоконструкций, кровли, перекрытий.",
+      "Дробление ЖБ-конструкций во вторичный щебень.",
+      "Погрузка и вывоз строительного мусора.",
+      "Вертикальная планировка освобождённой территории."
+    ]
+  },
+  universal: {
+    subtitle: "на выполнение работ по расчистке территории под застройку",
+    intro: "Компания «{COMPANY}» предлагает вам профессиональные услуги по подготовке земельного участка к строительству. Мы понимаем, что своевременная и качественная расчистка — фундамент для соблюдения графиков.",
+    works: [
+      "Валка деревьев (включая опасные и аварийные).",
+      "Корчевка пней и уборка порубочных остатков.",
+      "Снос ветхих строений, демонтаж фундаментов и ЖБ-конструкций.",
+      "Расчистка от кустарника, мелколесья и валежника.",
+      "Перемещение грунта и вертикальная планировка.",
+      "Вывоз и утилизация строительного и растительного мусора."
+    ]
+  }
+};
+
+function applyAccent(color) { document.documentElement.style.setProperty("--accent", color); }
+function applyDocStyle() {
+  var font = document.getElementById("docFont").value;
+  var size = document.getElementById("docSize").value;
+  document.getElementById("preview").style.setProperty("--doc-font", font);
+  document.getElementById("preview").style.setProperty("--doc-size", size);
+}
+
+function updateAll() {
+  for (var i = 0; i < fieldIds.length; i++) {
+    var id = fieldIds[i];
+    var inp = document.getElementById(id);
+    var out = document.getElementById("p-" + id);
+    if (inp && out) out.textContent = inp.value && inp.value.trim() !== "" ? inp.value : "—";
+  }
+  var mc = document.getElementById("myCompany").value;
+  var tplKey = document.getElementById("template").value;
+  var tpl = templates[tplKey] || templates.universal;
+  document.getElementById("p-subtitle").textContent = tpl.subtitle;
+  document.getElementById("p-intro").textContent = tpl.intro.replace("{COMPANY}", mc || "наша компания");
+
+  var list = document.getElementById("p-worksList");
+  list.innerHTML = "";
+  for (var k = 0; k < tpl.works.length; k++) {
+    var li = document.createElement("li");
+    li.textContent = tpl.works[k];
+    list.appendChild(li);
+  }
+  if (document.getElementById("secPlan").checked && tplKey !== "promo" && tplKey !== "demol") {
+    var li2 = document.createElement("li");
+    li2.textContent = "Вертикальная планировка участка.";
+    list.appendChild(li2);
+  }
+
+  document.getElementById("blockWhy").style.display   = document.getElementById("secWhy").checked   ? "block" : "none";
+  document.getElementById("blockSteps").style.display = document.getElementById("secSteps").checked ? "block" : "none";
+  document.getElementById("blockTerms").style.display = document.getElementById("secTerms").checked ? "block" : "none";
+  document.getElementById("liUtil").style.display    = document.getElementById("secUtil").checked    ? "list-item" : "none";
+
+  renderTable();
+  autoSave();
+}
+
+function collectData() {
+  var data = {};
+  for (var i = 0; i < fieldIds.length; i++) {
+    var el = document.getElementById(fieldIds[i]);
+    if (el) data[fieldIds[i]] = el.value;
+  }
+  data.template   = document.getElementById("template").value;
+  data.discount   = document.getElementById("discount").value;
+  data.accentColor= document.getElementById("accentColor").value;
+  data.docFont    = document.getElementById("docFont").value;
+  data.docSize    = document.getElementById("docSize").value;
+  data.secWhy     = document.getElementById("secWhy").checked;
+  data.secSteps   = document.getElementById("secSteps").checked;
+  data.secTerms   = document.getElementById("secTerms").checked;
+  data.secUtil    = document.getElementById("secUtil").checked;
+  data.secPlan    = document.getElementById("secPlan").checked;
+
+  data.estRows = [];
+  var rows = document.getElementById("estRows").getElementsByClassName("est-row");
+  for (var j = 0; j < rows.length; j++) {
+    var r = rows[j];
+    data.estRows.push({
+      name:  r.querySelector(".r-name").value,
+      unit:  r.querySelector(".r-unit").value,
+      qty:   r.querySelector(".r-qty").value,
+      price: r.querySelector(".r-price").value
+    });
+  }
+  data.imgLogo  = localStorage.getItem(IMG_PREFIX + "logo")  || null;
+  data.imgSign  = localStorage.getItem(IMG_PREFIX + "sign")  || null;
+  data.imgStamp = localStorage.getItem(IMG_PREFIX + "stamp") || null;
+  return data;
+}
+function autoSave() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData()));
+    setStatus("Автосохранено " + new Date().toLocaleTimeString("ru-RU"), false);
+  } catch(e) {}
+}
+function setStatus(msg, isErr) {
+  var el = document.getElementById("statusMsg");
+  el.textContent = msg;
+  el.className = "status" + (isErr ? " err" : "");
+}
+function restoreDraft() {
+  var raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return false;
+  try {
+    var d = JSON.parse(raw);
+    for (var i = 0; i < fieldIds.length; i++) {
+      if (d[fieldIds[i]] !== undefined) document.getElementById(fieldIds[i]).value = d[fieldIds[i]];
+    }
+    if (d.template)    document.getElementById("template").value = d.template;
+    if (d.discount !== undefined) document.getElementById("discount").value = d.discount;
+    if (d.accentColor) { document.getElementById("accentColor").value = d.accentColor; applyAccent(d.accentColor); }
+    if (d.docFont)     document.getElementById("docFont").value = d.docFont;
+    if (d.docSize)     document.getElementById("docSize").value = d.docSize;
+    if (d.secWhy   !== undefined) document.getElementById("secWhy").checked   = d.secWhy;
+    if (d.secSteps !== undefined) document.getElementById("secSteps").checked = d.secSteps;
+    if (d.secTerms !== undefined) document.getElementById("secTerms").checked = d.secTerms;
+    if (d.secUtil  !== undefined) document.getElementById("secUtil").checked  = d.secUtil;
+    if (d.secPlan  !== undefined) document.getElementById("secPlan").checked  = d.secPlan;
+    applyDocStyle();
+
+    document.getElementById("estRows").innerHTML = "";
+    if (d.estRows && d.estRows.length) {
+      for (var j = 0; j < d.estRows.length; j++) {
+        var r = d.estRows[j];
+        addRow(r.name, r.unit, r.qty, r.price);
+      }
+    } else { addDefaultRows(); }
+
+    if (d.imgLogo)  applyImage("logo",  d.imgLogo);
+    if (d.imgSign)  applyImage("sign",  d.imgSign);
+    if (d.imgStamp) applyImage("stamp", d.imgStamp);
+    return true;
+  } catch(e) { return false; }
+}
+
+function saveDraft() {
+  var data = collectData();
+  var blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "КП_черновик_" + new Date().toISOString().slice(0,10) + ".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  setStatus("Черновик скачан", false);
+}
+function importDraft(event) {
+  var file = event.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var d = JSON.parse(e.target.result);
+      for (var i = 0; i < fieldIds.length; i++) {
+        if (d[fieldIds[i]] !== undefined) document.getElementById(fieldIds[i]).value = d[fieldIds[i]];
+      }
+      if (d.template) document.getElementById("template").value = d.template;
+      if (d.discount !== undefined) document.getElementById("discount").value = d.discount;
+      if (d.accentColor) { document.getElementById("accentColor").value = d.accentColor; applyAccent(d.accentColor); }
+      if (d.docFont) document.getElementById("docFont").value = d.docFont;
+      if (d.docSize) document.getElementById("docSize").value = d.docSize;
+      applyDocStyle();
+      document.getElementById("estRows").innerHTML = "";
+      if (d.estRows) for (var j=0;j<d.estRows.length;j++) {
+        var r = d.estRows[j]; addRow(r.name, r.unit, r.qty, r.price);
+      }
+      if (d.imgLogo)  { localStorage.setItem(IMG_PREFIX+"logo",  d.imgLogo);  applyImage("logo",  d.imgLogo); }
+      if (d.imgSign)  { localStorage.setItem(IMG_PREFIX+"sign",  d.imgSign);  applyImage("sign",  d.imgSign); }
+      if (d.imgStamp) { localStorage.setItem(IMG_PREFIX+"stamp", d.imgStamp); applyImage("stamp", d.imgStamp); }
+      updateAll();
+      setStatus("Черновик загружен", false);
+    } catch(err) { setStatus("Ошибка: файл повреждён", true); }
+  };
+  reader.readAsText(file);
+  event.target.value = "";
+}
+function clearAll() {
+  if (!confirm("Очистить все поля, смету и изображения?")) return;
+  for (var i = 0; i < fieldIds.length; i++) document.getElementById(fieldIds[i]).value = "";
+  document.getElementById("tech").value = "мульчеры, экскаваторы, самосвалы, дробилки";
+  document.getElementById("standards").value = "СНиП, ГОСТ, ТБ";
+  document.getElementById("advance").value = "30%";
+  document.getElementById("schedule").value = "Работаем в 2 смены, включая выходные";
+  document.getElementById("vat").value = "с учётом НДС";
+  document.getElementById("discount").value = "0";
+  document.getElementById("estRows").innerHTML = "";
+  addDefaultRows();
+  removeImage("logo"); removeImage("sign"); removeImage("stamp");
+  localStorage.removeItem(STORAGE_KEY);
+  updateAll();
+  setStatus("Форма очищена", false);
+}
+
+function loadImage(event, kind) {
+  var file = event.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var url = e.target.result;
+    localStorage.setItem(IMG_PREFIX + kind, url);
+    applyImage(kind, url);
+    setStatus("Изображение загружено", false);
+  };
+  reader.readAsDataURL(file);
+}
+function applyImage(kind, url) {
+  if (kind === "logo") {
+    document.getElementById("logoPreview").src = url;
+    document.getElementById("logoPreview").style.display = "block";
+    document.getElementById("logoInDoc").src = url;
+    document.getElementById("logoBlock").style.display = "block";
+  } else if (kind === "sign") {
+    document.getElementById("signPreview").src = url;
+    document.getElementById("signPreview").style.display = "block";
+    document.getElementById("signInDoc").src = url;
+    document.getElementById("signBlock").style.display = "flex";
+  } else if (kind === "stamp") {
+    document.getElementById("stampPreview").src = url;
+    document.getElementById("stampPreview").style.display = "block";
+    document.getElementById("stampInDoc").src = url;
+    document.getElementById("stampWrap").style.display = "block";
+    document.getElementById("signBlock").style.display = "flex";
+  }
+}
+function removeImage(kind) {
+  localStorage.removeItem(IMG_PREFIX + kind);
+  if (kind === "logo") {
+    document.getElementById("logoPreview").style.display = "none";
+    document.getElementById("logoBlock").style.display = "none";
+  } else if (kind === "sign") {
+    document.getElementById("signPreview").style.display = "none";
+    document.getElementById("signInDoc").src = "";
+    if (document.getElementById("stampWrap").style.display === "none")
+      document.getElementById("signBlock").style.display = "none";
+  } else if (kind === "stamp") {
+    document.getElementById("stampPreview").style.display = "none";
+    document.getElementById("stampWrap").style.display = "none";
+    if (!document.getElementById("signInDoc").src)
+      document.getElementById("signBlock").style.display = "none";
+  }
+  var inputMap = {logo:"logoInput", sign:"signInput", stamp:"stampInput"};
+  document.getElementById(inputMap[kind]).value = "";
+}
+
+function autoNumber() {
+  var now = new Date();
+  var dd = String(now.getDate()).padStart(2,"0");
+  var mm = String(now.getMonth()+1).padStart(2,"0");
+  var yyyy = now.getFullYear();
+  document.getElementById("date").value = dd + "." + mm + "." + yyyy;
+  var counter = parseInt(localStorage.getItem(COUNTER_KEY) || "0", 10) + 1;
+  localStorage.setItem(COUNTER_KEY, counter);
+  var num = "КП-" + yyyy + "-" + String(counter).padStart(4,"0");
+  document.getElementById("docnum").value = num;
+  updateAll();
+  setStatus("Номер: " + num, false);
+}
+
+function validate() {
+  var ok = true, firstBad = null;
+  for (var i = 0; i < requiredFields.length; i++) {
+    var el = document.getElementById(requiredFields[i]);
+    if (!el.value || el.value.trim() === "") {
+      el.classList.add("invalid"); ok = false;
+      if (!firstBad) firstBad = el;
+    } else el.classList.remove("invalid");
+  }
+  if (!ok) {
+    setStatus("Заполните обязательные поля (подсвечены красным)", true);
+    if (firstBad) {
+      var sec = firstBad.closest("details");
+      if (sec) sec.open = true;
+      firstBad.focus();
+    }
+  }
+  return ok;
+}
+
+var estContainer = document.getElementById("estRows");
+function addRow(name, unit, qty, price) {
+  name = name||""; unit = unit||""; qty = qty||""; price = price||"";
+  var div = document.createElement("div");
+  div.className = "est-row";
+  div.innerHTML =
+    '<input type="text" class="r-name" placeholder="Работа" value="' + esc(name) + '" oninput="renderTable();autoSave();">' +
+    '<input type="text" class="r-unit" placeholder="ед." value="' + esc(unit) + '" oninput="renderTable();autoSave();">' +
+    '<input type="number" class="r-qty" placeholder="0" value="' + esc(qty) + '" oninput="renderTable();autoSave();">' +
+    '<input type="number" class="r-price" placeholder="0" value="' + esc(price) + '" oninput="renderTable();autoSave();">' +
+    '<input type="text" class="r-sum" placeholder="0" readonly style="background:#f0f0f0;">' +
+    '<button class="small" onclick="this.parentNode.remove();renderTable();autoSave();">✕</button>';
+  estContainer.appendChild(div);
+  renderTable();
+}
+function esc(s) { return String(s).replace(/"/g, "&quot;"); }
+function renderTable() {
+  var body = document.getElementById("p-estBody");
+  body.innerHTML = "";
+  var discount = parseFloat(document.getElementById("discount").value) || 0;
+  var total = 0;
+  var rows = estContainer.getElementsByClassName("est-row");
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var name  = r.querySelector(".r-name").value;
+    var unit  = r.querySelector(".r-unit").value;
+    var qty   = parseFloat(r.querySelector(".r-qty").value) || 0;
+    var price = parseFloat(r.querySelector(".r-price").value) || 0;
+    var base  = qty * price;
+    r.querySelector(".r-sum").value = base ? base.toFixed(2) : "";
+    if (name === "" && qty === 0 && price === 0) continue;
+    total += base;
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + (name || "—") + "</td>" +
+      "<td>" + (unit || "—") + "</td>" +
+      "<td>" + (qty || "—") + "</td>" +
+      "<td>" + (price || "—") + "</td>" +
+      "<td>" + (base ? base.toFixed(2) : "—") + "</td>";
+    body.appendChild(tr);
+  }
+  document.getElementById("p-total").textContent = fmt(total);
+  if (discount > 0) {
+    document.getElementById("rowDiscount").style.display = "table-row";
+    document.getElementById("p-discount-val").textContent = discount + "%";
+    document.getElementById("rowFinal").style.display = "table-row";
+    document.getElementById("p-total-final").textContent = fmt(total * (1 - discount/100));
+  } else {
+    document.getElementById("rowDiscount").style.display = "none";
+    document.getElementById("rowFinal").style.display = "none";
+  }
+}
+function fmt(n) { return n.toLocaleString("ru-RU", {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function addDefaultRows() {
+  addRow("Валка деревьев (диаметр до 300 мм)", "шт.");
+  addRow("Корчевка пней", "шт.");
+  addRow("Снос строений / фундаментов", "м³");
+  addRow("Погрузка и вывоз мусора", "м³");
+  addRow("Вертикальная планировка", "м²");
+}
+
+function openPreview() {
+  if (!validate()) return;
+  var previewHtml = document.getElementById("preview").innerHTML;
+  var font = document.getElementById("docFont").value;
+  var size = document.getElementById("docSize").value;
+  var accent = document.getElementById("accentColor").value;
+  var styles =
+    "<style>" +
+    "body{background:#fff;margin:0;padding:40px 60px;font-family:" + font + ";font-size:" + size + ";line-height:1.55;color:#222;max-width:850px;margin:0 auto;}" +
+    "h1{text-align:center;font-size:22px;text-transform:uppercase;border-bottom:3px solid #2c3e50;padding-bottom:10px;}" +
+    ".subtitle{text-align:center;font-style:italic;}" +
+    "h2{font-size:16px;color:#2c3e50;border-left:4px solid " + accent + ";padding-left:10px;margin-top:25px;}" +
+    ".header-info{background:#f4f4f4;padding:12px 15px;}" +
+    "table{width:100%;border-collapse:collapse;font-size:0.93em;}" +
+    "th,td{border:1px solid #999;padding:8px;text-align:center;}" +
+    "th{background:#2c3e50;color:#fff;}" +
+    ".total-row{font-weight:bold;background:#ecf0f1;}" +
+    ".final-row{background:#fff2e0;font-size:1.07em;}" +
+    ".contacts{background:" + accent + ";color:#fff;padding:15px 20px;}" +
+    ".highlight{color:" + accent + ";font-weight:bold;}" +
+    ".note{font-size:12px;color:#666;font-style:italic;}" +
+    ".logo-block{text-align:center;}" +
+    ".sign-block{display:flex;justify-content:space-between;margin-top:35px;gap:30px;}" +
+    ".sign-item{flex:1;text-align:center;font-size:0.93em;}" +
+    ".sign-item img{max-height:70px;}" +
+    ".sign-line{border-top:1px solid #333;margin-top:40px;padding-top:4px;font-size:0.86em;color:#555;}" +
+    "@media print{body{padding:20px;}}" +
+    "</style>";
+  var html = "<html><head><meta charset='utf-8'>" + styles + "</head><body>" + previewHtml + "</body></html>";
+  var modal = document.getElementById("modalPreview");
+  var content = document.getElementById("modalContent");
+  content.innerHTML = "<iframe style='width:100%;height:calc(92vh - 50px);border:none;background:#fff;' srcdoc='" +
+    html.replace(/'/g, "&#39;") + "'></iframe>";
+  modal.classList.add("open");
+}
+function closePreview() { document.getElementById("modalPreview").classList.remove("open"); }
+document.addEventListener("keydown", function(e){ if (e.key === "Escape") closePreview(); });
+
+function downloadPDF() {
+  if (!validate()) return;
+  setStatus("Генерируем PDF…", false);
+  var element = document.getElementById("preview");
+  var docName = (document.getElementById("docnum").value || "").replace(/[^\w\-]/g,"_");
+  var opt = {
+    margin: [10, 10, 10, 10],
+    filename: "Коммерческое_предложение" + (docName ? "_" + docName : "") + ".pdf",
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+  };
+  html2pdf().set(opt).from(element).save().then(function(){
+    setStatus("PDF сохранён", false);
+  }).catch(function(){
+    setStatus("Ошибка генерации PDF — попробуйте печать", true);
+  });
+}
+
+function downloadWord() {
+  if (!validate()) return;
+  var previewHtml = document.getElementById("preview").innerHTML;
+  var accent = document.getElementById("accentColor").value;
+  var font = document.getElementById("docFont").value;
+  var size = document.getElementById("docSize").value;
+  var styles =
+    "<style>" +
+    "body{font-family:" + font + ";font-size:" + size + ";line-height:1.5;}" +
+    "h1{text-align:center;font-size:22px;text-transform:uppercase;border-bottom:3px solid #2c3e50;padding-bottom:10px;}" +
+    ".subtitle{text-align:center;font-style:italic;}" +
+    "h2{font-size:16px;color:#2c3e50;border-left:4px solid " + accent + ";padding-left:10px;margin-top:25px;}" +
+    ".header-info{background:#f4f4f4;padding:12px 15px;}" +
+    "table{width:100%;border-collapse:collapse;font-size:0.93em;}" +
+    "th,td{border:1px solid #999;padding:8px;text-align:center;}" +
+    "th{background:#2c3e50;color:#fff;}" +
+    ".total-row{font-weight:bold;background:#ecf0f1;}" +
+    ".final-row{background:#fff2e0;font-size:1.07em;}" +
+    ".contacts{background:" + accent + ";color:#fff;padding:15px 20px;}" +
+    ".highlight{color:" + accent + ";font-weight:bold;}" +
+    ".note{font-size:12px;color:#666;font-style:italic;}" +
+    ".logo-block{text-align:center;}" +
+    ".sign-block{width:100%;margin-top:35px;}" +
+    ".sign-item{display:inline-block;width:45%;text-align:center;}" +
+    ".sign-item img{max-height:70px;}" +
+    ".sign-line{border-top:1px solid #333;margin-top:40px;padding-top:4px;font-size:0.86em;color:#555;}" +
+    "</style>";
+  var html =
+    "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
+    "xmlns:w='urn:schemas-microsoft-com:office:word' " +
+    "xmlns='http://www.w3.org/TR/REC-html40'>" +
+    "<head><meta charset='utf-8'>" + styles + "</head>" +
+    "<body>" + previewHtml + "</body></html>";
+  var blob = new Blob(["\ufeff", html], {type: "application/msword"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "Коммерческое_предложение.doc";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  setStatus("Word сохранён", false);
+}
+
+(function init() {
+  if (restoreDraft()) {
+    updateAll();
+    setStatus("Черновик восстановлен", false);
+  } else {
+    addDefaultRows();
+    autoNumber();
+    applyDocStyle();
+    updateAll();
+  }
+  for (var i = 0; i < requiredFields.length; i++) {
+    (function(id){
+      var el = document.getElementById(id);
+      el.addEventListener("input", function(){ el.classList.remove("invalid"); });
+    })(requiredFields[i]);
+  }
+})();
+</script>
+</body>
+</html>
