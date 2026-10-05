@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Конструктор КП — 3D-печать v3</title>
+<title>Конструктор КП — 3D-печать</title>
 <style>
   * { box-sizing: border-box; }
   :root { --accent:#e67e22; --headline:#2c3e50; --border:#ccc; }
@@ -18,10 +18,10 @@
     font-size:13px; font-family:inherit; background:#fff; color:#222;
   }
   input[type="color"] { width:100%; height:38px; padding:3px; border:1px solid var(--border); border-radius:5px; background:#fff; cursor:pointer; }
+  input[type="range"] { width:100%; }
   input:focus, select:focus, textarea:focus { outline:none; border-color: var(--accent); }
   input.invalid { border-color:#c0392b; background:#fdeaea; }
   .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
   button {
     background:#2c3e50; color:#fff; border:none; padding:10px 16px; border-radius:5px;
     font-size:13px; cursor:pointer; margin:8px 4px 0 0; font-family:inherit;
@@ -53,74 +53,152 @@
   details.section[open] > summary::before { transform: rotate(90deg); }
   details.section > .body { padding: 4px 14px 14px; }
 
-  .est-row { display:grid; grid-template-columns: 2fr 55px 60px 70px 75px 28px; gap:4px; margin-bottom:5px; align-items:center; }
-  .est-row input { padding:5px; font-size:12px; }
+  .theme-btns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 6px; }
+  .theme-btn {
+    padding: 8px 6px; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;
+    background: #fff; text-align: center; font-size: 12px; font-weight: 600;
+    color: #2c3e50; transition: all .15s;
+  }
+  .theme-btn:hover { border-color: var(--accent); }
+  .theme-btn.active { border-color: var(--accent); background: #fff8ee; }
+  .theme-btn .dot {
+    display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+    margin-bottom: 4px; border: 1px solid #ccc;
+  }
 
-  .gallery-thumb { display: inline-block; position: relative; margin: 4px; vertical-align: top; }
-  .gallery-thumb img { width: 70px; height: 70px; object-fit: cover; border-radius: 5px; border: 1px solid var(--border); display: block; }
-  .gallery-remove {
+  .gal-item {
+    display: grid; grid-template-columns: 80px 1fr; gap: 10px;
+    padding: 10px; border: 1px solid var(--border); border-radius: 6px;
+    margin-bottom: 8px; background:#fff; align-items: flex-start;
+  }
+  .gal-item .thumb { position: relative; width: 80px; height: 80px; }
+  .gal-item .thumb img { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid var(--border); display:block; }
+  .gal-item .thumb .gal-remove {
     position: absolute; top: -6px; right: -6px;
     width: 20px; height: 20px; border-radius: 50%;
     background: #c0392b; color: #fff; border: 2px solid #fff;
     font-size: 11px; line-height: 1; padding: 0; cursor: pointer; margin: 0;
     display: flex; align-items: center; justify-content: center;
   }
-  .gallery-remove:hover { background: #a32e22; }
+  .gal-item .thumb .gal-remove:hover { background: #a32e22; }
+  .gal-item .fields input { padding: 5px 8px; font-size: 12px; margin-bottom: 4px; }
 
-  .calc-result {
-    margin-top: 12px; padding: 12px; background: #fff8ee; border: 1px solid #f5d5a5;
-    border-radius: 6px; font-size: 13px; line-height: 1.7; color: #2c3e50;
+  /* ============ ПРЕВЬЮ ДОКУМЕНТА ============ */
+  #previewWrap {
+    background: #eef1f5; padding: 20px; border-radius: 10px;
+    max-height: 96vh; overflow-y: auto;
   }
-  .calc-result strong { color: #e67e22; }
-
-  .catalog-list {
-    max-height: 240px; overflow-y: auto; margin-top: 8px;
-    border: 1px solid var(--border); border-radius: 6px; background:#fff;
-  }
-  .catalog-item {
-    display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
-    padding: 8px 12px; border-bottom: 1px solid #eee; cursor: pointer;
-    transition: background .12s;
-  }
-  .catalog-item:last-child { border-bottom: none; }
-  .catalog-item:hover { background: #f8f8f8; }
-  .catalog-item.selected { background: #fff3e0; border-left: 3px solid var(--accent); }
-  .catalog-item .info { font-size: 13px; line-height: 1.35; }
-  .catalog-item .info .name { font-weight: 600; color: #2c3e50; }
-  .catalog-item .info .meta { font-size: 11px; color: #888; }
-  .catalog-item .actions { display: flex; gap: 4px; }
-  .catalog-item .actions button { margin: 0; padding: 4px 8px; font-size: 11px; }
-  .cat-remove { background: #c0392b; }
-  .cat-remove:hover { background: #a32e22; }
-
-  .catalog-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .catalog-filters select { flex: 1; min-width: 120px; }
-
   #preview {
-    background:#fff; padding:40px;
+    background: #fff;
+    padding: 40px;
     font-family: var(--doc-font, 'Times New Roman'), serif;
     font-size: var(--doc-size, 14px);
-    line-height:1.5; color:#222;
+    line-height: 1.5;
+    color: #222;
+    position: relative;
+    min-height: 400px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   }
-  #preview h1 { text-align:center; font-size:22px; text-transform:uppercase; border-bottom:3px solid #2c3e50; padding-bottom:10px; margin-bottom:5px; color:#2c3e50; }
-  #preview .subtitle { text-align:center; font-style:italic; margin-top:0; }
-  #preview h2 { font-size:16px; color:#2c3e50; border-left:4px solid var(--accent); padding-left:10px; margin-top:25px; }
+  #preview.with-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255, var(--bg-overlay, 0.85));
+    z-index: 0;
+    pointer-events: none;
+  }
+  #preview > * { position: relative; z-index: 1; }
+
+  /* Стили для тем */
+  #preview.theme-classic h1 {
+    text-align:center; font-size:22px; text-transform:uppercase;
+    border-bottom:3px solid #2c3e50; padding-bottom:10px; margin-bottom:5px; color:#2c3e50;
+  }
+  #preview.theme-minimal h1 {
+    text-align:left; font-size:26px; text-transform:none;
+    border-bottom:none; padding-bottom:0; margin-bottom:5px; color:#2c3e50;
+    font-weight: 300; letter-spacing: 1px;
+  }
+  #preview.theme-minimal .subtitle { text-align:left; }
+  #preview.theme-modern h1 {
+    text-align:center; font-size:24px; text-transform:none;
+    padding: 18px 20px; margin: -40px -40px 20px -40px;
+    background: var(--accent);
+    color: #fff; font-weight: 700; letter-spacing: 0.5px;
+  }
+  #preview.theme-modern .subtitle {
+    text-align:center; color: #666; margin-top: 0; padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+  }
+  #preview.theme-premium h1 {
+    text-align:center; font-size:24px; text-transform:uppercase;
+    letter-spacing: 4px; font-weight: 400;
+    border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
+    padding: 12px 0; margin-bottom: 8px; color: #2c3e50;
+  }
+  #preview.theme-premium .subtitle {
+    text-align:center; font-style:normal; font-size: 0.86em;
+    text-transform: uppercase; letter-spacing: 2px; color: #888;
+  }
+
   #preview .header-info { background:#f4f4f4; padding:12px 15px; border-radius:5px; margin:20px 0; }
   #preview .header-info p { margin:4px 0; }
+  #preview.theme-modern .header-info {
+    background: #f8f9fb; border-left: 4px solid var(--accent); border-radius: 0;
+  }
+  #preview.theme-premium .header-info {
+    background: transparent; border-top: 1px solid #eee; border-bottom: 1px solid #eee;
+    border-radius: 0; text-align: center;
+  }
+  #preview.theme-premium .header-info p { display: inline-block; margin: 6px 15px; }
+
+  #preview h2 {
+    font-size:16px; color:#2c3e50;
+    border-left:4px solid var(--accent); padding-left:10px; margin-top:25px;
+  }
+  #preview.theme-modern h2 {
+    border-left: none; border-bottom: 2px solid var(--accent);
+    padding-left: 0; padding-bottom: 5px; display: inline-block;
+  }
+  #preview.theme-premium h2 {
+    border-left: none; text-align: center; text-transform: uppercase;
+    letter-spacing: 2px; font-size: 14px; font-weight: 600;
+    padding: 0; margin-top: 30px;
+  }
+  #preview.theme-minimal h2 {
+    border-left: none; border-bottom: 1px solid #eee;
+    padding-left: 0; padding-bottom: 5px; font-weight: 400;
+    text-transform: uppercase; letter-spacing: 1px; font-size: 14px;
+  }
+
   #preview table { width:100%; border-collapse:collapse; margin:15px 0; font-size:0.93em; }
   #preview th, #preview td { border:1px solid #999; padding:8px; text-align:center; }
   #preview th { background:#2c3e50; color:#fff; }
-  #preview tr:nth-child(even) { background:#f9f9f9; }
-  #preview .total-row { font-weight:bold; background:#ecf0f1 !important; }
-  #preview .final-row { background:#fff2e0 !important; font-size:1.07em; }
   #preview .contacts { background: var(--accent); color:#fff; padding:15px 20px; border-radius:5px; margin-top:25px; }
+  #preview.theme-premium .contacts { border-radius: 0; }
   #preview .contacts p { margin:4px 0; }
   #preview .highlight { color: var(--accent); font-weight:bold; }
   #preview .note { font-size:12px; color:#666; font-style:italic; }
   #preview .logo-block { text-align:center; margin-bottom:15px; }
   #preview .logo-block img { max-height:80px; max-width:250px; }
-  #preview .gallery-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin:15px 0; }
-  #preview .gallery-grid img { width:100%; height:150px; object-fit:cover; border-radius:6px; border:1px solid #e0e0e0; }
+  #preview .gallery-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin:15px 0; }
+  #preview .gallery-card {
+    text-align: center; border: 1px solid #e0e0e0; border-radius: 6px;
+    padding: 8px; background: rgba(255,255,255,0.6);
+  }
+  #preview.theme-premium .gallery-card { border-radius: 0; border: 1px solid #ddd; }
+  #preview .gallery-card img { width: 100%; height: 140px; object-fit: cover; border-radius: 4px; display: block; }
+  #preview .gallery-card .g-name { font-size: 0.93em; font-weight: 600; margin-top: 6px; color:#2c3e50; line-height: 1.3; }
+  #preview .gallery-card .g-price { font-size: 1.07em; font-weight: bold; color: var(--accent); margin-top: 4px; }
+  #preview .price-note {
+    background:#f4f4f4; padding:14px 18px; border-radius:6px;
+    border-left: 4px solid var(--accent); font-size: 0.93em; line-height: 1.5;
+  }
+  #preview.theme-modern .price-note { background: #f8f9fb; border-radius: 0; }
+  #preview.theme-premium .price-note { background: transparent; border: 1px solid #eee; border-radius: 0; text-align: center; }
   #preview .sign-block { display:flex; justify-content:space-between; align-items:flex-end; margin-top:35px; gap:30px; }
   #preview .sign-item { flex:1; text-align:center; font-size:13px; }
   #preview .sign-item img { max-height:70px; max-width:180px; display:block; margin:0 auto 4px; }
@@ -137,6 +215,7 @@
     body { background:#fff; }
     .app { display:block; padding:0; max-width:none; }
     .panel { display:none !important; }
+    #previewWrap { padding: 0; max-height: none; overflow: visible; background:#fff; }
     #preview { padding:0; box-shadow:none; }
   }
 </style>
@@ -145,7 +224,7 @@
 
 <div class="app">
   <div class="panel">
-    <h2>КП — мастерская 3D-печати v3</h2>
+    <h2>КП — мастерская 3D-печати</h2>
 
     <div class="toolbar">
       <button class="green" onclick="saveDraft()">💾 Черновик</button>
@@ -155,11 +234,29 @@
     </div>
     <div class="status" id="statusMsg">Автосохранение включено</div>
 
+    <!-- ОФОРМЛЕНИЕ -->
     <details class="section" open>
       <summary>🎨 Оформление</summary>
       <div class="body">
+        <label>Тема документа</label>
+        <div class="theme-btns" id="themeBtns">
+          <div class="theme-btn active" data-theme="classic">
+            <div class="dot" style="background:#2c3e50;"></div><br>Классика
+          </div>
+          <div class="theme-btn" data-theme="minimal">
+            <div class="dot" style="background:#bdc3c7;"></div><br>Минимал
+          </div>
+          <div class="theme-btn" data-theme="modern">
+            <div class="dot" style="background:#e67e22;"></div><br>Современный
+          </div>
+          <div class="theme-btn" data-theme="premium">
+            <div class="dot" style="background:#8e44ad;"></div><br>Премиум
+          </div>
+        </div>
+
         <label>Акцентный цвет</label>
         <input type="color" id="accentColor" value="#e67e22" onchange="applyAccent(this.value); updateAll();">
+
         <label>Шрифт документа</label>
         <select id="docFont" onchange="applyDocStyle(); autoSave();">
           <option value="'Times New Roman', serif">Times New Roman</option>
@@ -167,8 +264,10 @@
           <option value="Georgia, serif">Georgia</option>
           <option value="'Segoe UI', sans-serif">Segoe UI</option>
           <option value="Calibri, sans-serif">Calibri</option>
+          <option value="'Helvetica Neue', sans-serif">Helvetica Neue</option>
         </select>
-        <label>Размер шрифта документа</label>
+
+        <label>Размер шрифта</label>
         <select id="docSize" onchange="applyDocStyle(); autoSave();">
           <option value="12px">12 pt</option>
           <option value="13px">13 pt</option>
@@ -176,11 +275,21 @@
           <option value="15px">15 pt</option>
           <option value="16px">16 pt</option>
         </select>
+
+        <label style="margin-top:16px;">Фон документа (картинка)</label>
+        <input type="file" id="bgInput" accept="image/*" onchange="loadBackground(event)">
+        <img id="bgPreview" class="img-preview" style="max-height:80px;" alt="">
+        <button class="tiny" onclick="removeBackground()">Убрать фон</button>
+
+        <label style="margin-top:10px;">Прозрачность подложки под текстом</label>
+        <input type="range" id="bgOverlay" min="0" max="1" step="0.05" value="0.85" oninput="applyBackground(); autoSave();">
+        <div style="font-size:11px; color:#888;">Чем выше значение, тем сильнее фон приглушён (текст читаемее). 0.85 — оптимально.</div>
       </div>
     </details>
 
+    <!-- ТИП ОБРАЩЕНИЯ -->
     <details class="section" open>
-      <summary>1. Тип заказа</summary>
+      <summary>1. Тип обращения</summary>
       <div class="body">
         <select id="template" onchange="updateAll()">
           <option value="catalog">Готовые модели из каталога</option>
@@ -191,99 +300,22 @@
       </div>
     </details>
 
+    <!-- РАЗДЕЛЫ -->
     <details class="section">
       <summary>2. Разделы в документе</summary>
       <div class="body">
         <label class="check"><input type="checkbox" id="secWhy"     checked onchange="updateAll()"> «Почему выбирают нас»</label>
-        <label class="check"><input type="checkbox" id="secGallery" checked onchange="updateAll()"> «Примеры наших работ» (галерея)</label>
         <label class="check"><input type="checkbox" id="secTech"    checked onchange="updateAll()"> «Материалы и технологии»</label>
+        <label class="check"><input type="checkbox" id="secGallery" checked onchange="updateAll()"> «Примеры наших работ» (галерея)</label>
         <label class="check"><input type="checkbox" id="secSteps"   checked onchange="updateAll()"> «Этапы работы»</label>
         <label class="check"><input type="checkbox" id="secTerms"   checked onchange="updateAll()"> «Условия сотрудничества»</label>
-        <label class="check"><input type="checkbox" id="secPack"    checked onchange="updateAll()"> Пункт «Упаковка и доставка»</label>
+        <label class="check"><input type="checkbox" id="secPrice"   checked onchange="updateAll()"> «Прайс-лист» (текст о приложении)</label>
         <label class="check"><input type="checkbox" id="secQC"      checked onchange="updateAll()"> Пункт «Контроль качества»</label>
+        <label class="check"><input type="checkbox" id="secPack"    checked onchange="updateAll()"> Пункт «Упаковка и доставка»</label>
       </div>
     </details>
 
-    <details class="section">
-      <summary>🖼 Галерея работ</summary>
-      <div class="body">
-        <label>Фото ваших изделий (до 9 штук)</label>
-        <input type="file" id="galleryInput" accept="image/*" multiple onchange="loadGallery(event)">
-        <div id="galleryThumbs" style="margin-top:8px;"></div>
-        <button class="tiny" onclick="clearGallery()">Убрать все фото</button>
-      </div>
-    </details>
-
-    <details class="section" open>
-      <summary>📚 Каталог моделей и калькулятор</summary>
-      <div class="body">
-        <label>Категория</label>
-        <div class="catalog-filters">
-          <select id="catFilter" onchange="renderCatalog()"></select>
-        </div>
-
-        <label>Модель <span id="modelCount" style="font-weight:normal;color:#888;font-size:11px;"></span></label>
-        <div class="catalog-list" id="catalogList"></div>
-
-        <button class="tiny" onclick="showAddModelForm()">➕ Добавить свою модель</button>
-
-        <div id="addModelForm" style="display:none; margin-top:10px; padding:10px; background:#f0f2f5; border-radius:6px;">
-          <label>Название модели</label>
-          <input type="text" id="newModelName" placeholder="Например, Дракон 15 см">
-          <label>Категория</label>
-          <select id="newModelCat">
-            <option value="Фигурки">Фигурки</option>
-            <option value="Статуэтки">Статуэтки</option>
-            <option value="Сувениры">Сувениры</option>
-            <option value="Брелоки">Брелоки</option>
-            <option value="Функциональные">Функциональные</option>
-            <option value="Мои модели">Мои модели</option>
-          </select>
-          <div class="row-2">
-            <div><label>Объём, см³</label><input type="number" id="newModelVolume" value="50" step="1"></div>
-            <div><label>Заполнение, %</label><input type="number" id="newModelInfill" value="15" step="5"></div>
-          </div>
-          <div class="row-2">
-            <div>
-              <label>Материал</label>
-              <select id="newModelMaterial">
-                <option value="pla">PLA</option>
-                <option value="petg">PETG</option>
-                <option value="abs">ABS</option>
-                <option value="tpu">TPU</option>
-                <option value="resin">Фотополимер</option>
-              </select>
-            </div>
-            <div><label>Постобработка, ₽</label><input type="number" id="newModelPost" value="150" step="10"></div>
-          </div>
-          <label>Описание (необязательно)</label>
-          <textarea id="newModelDesc" rows="2" placeholder="Высота 150 мм, детализация высокая"></textarea>
-          <button class="accent" onclick="saveNewModel()">Сохранить в каталог</button>
-          <button class="gray" onclick="hideAddModelForm()">Отмена</button>
-        </div>
-
-        <h3 style="margin:16px 0 6px; font-size:14px; color:#2c3e50;">Параметры расчёта</h3>
-        <div class="row-2">
-          <div><label>Объём, см³</label><input type="number" id="calcVolume" value="50" step="1" min="0" oninput="calcUpdate()"></div>
-          <div><label>Заполнение, %</label><input type="number" id="calcInfill" value="15" step="5" min="0" max="100" oninput="calcUpdate()"></div>
-        </div>
-        <label>Материал</label>
-        <select id="calcMaterial" onchange="calcUpdate()">
-          <option value="pla">PLA — 3 ₽/г</option>
-          <option value="petg">PETG — 3.5 ₽/г</option>
-          <option value="abs">ABS — 3.5 ₽/г</option>
-          <option value="tpu">TPU — 6 ₽/г</option>
-          <option value="resin">Фотополимер — 8 ₽/г</option>
-        </select>
-        <div class="row-2">
-          <div><label>Работа станка, ₽/час</label><input type="number" id="calcHourRate" value="50" step="10" min="0" oninput="calcUpdate()"></div>
-          <div><label>Постобработка, ₽</label><input type="number" id="calcPost" value="150" step="10" min="0" oninput="calcUpdate()"></div>
-        </div>
-        <div class="calc-result" id="calcResult">—</div>
-        <button class="accent" onclick="calcAddToEstimate()">➕ Добавить в смету</button>
-      </div>
-    </details>
-
+    <!-- РЕКВИЗИТЫ -->
     <details class="section" open>
       <summary>3. Реквизиты</summary>
       <div class="body">
@@ -294,18 +326,18 @@
 
         <label>Название вашей мастерской *</label>
         <input type="text" id="myCompany" oninput="updateAll()" placeholder="Мастерская «PrintLab»">
-        <label>Заказчик *</label>
-        <input type="text" id="client" oninput="updateAll()" placeholder="ООО «СувенирПро» / Иванов И.И.">
+        <label>Кому (название компании или имя заказчика) *</label>
+        <input type="text" id="client" oninput="updateAll()" placeholder="ООО «СувенирПро» / Иван">
         <div class="row-2">
           <div><label>Дата</label><input type="text" id="date" oninput="updateAll()"></div>
           <div><label>Исх. номер</label><input type="text" id="docnum" oninput="updateAll()"></div>
         </div>
         <button class="blue" onclick="autoNumber()">🔄 Авто-номер и дата</button>
 
-        <label>ФИО руководителя (обращение) *</label>
-        <input type="text" id="contactName" oninput="updateAll()" placeholder="Иван Иванович">
+        <label>Имя получателя (для обращения) *</label>
+        <input type="text" id="contactName" oninput="updateAll()" placeholder="Иван / Иван Петрович">
         <label>Опыт мастерской (лет)</label>
-        <input type="text" id="years" oninput="updateAll()" placeholder="5">
+        <input type="text" id="years" oninput="updateAll()" value="1">
         <div class="row-2">
           <div><label>Принтеров в парке</label><input type="text" id="printers" oninput="updateAll()" value="32"></div>
           <div><label>Срок выполнения *</label><input type="text" id="duration" oninput="updateAll()" placeholder="5 рабочих дней"></div>
@@ -320,8 +352,8 @@
         <input type="text" id="tech" oninput="updateAll()" value="FDM и SLA/DLP">
         <label>Адрес мастерской *</label>
         <input type="text" id="address" oninput="updateAll()" placeholder="г. Москва, ул. ...">
-        <label>Аванс</label>
-        <input type="text" id="advance" oninput="updateAll()" value="50%">
+        <label>Условия оплаты</label>
+        <input type="text" id="advance" oninput="updateAll()" value="Предоплата 50%, остаток — после согласования партии">
         <label>График работы</label>
         <input type="text" id="schedule" oninput="updateAll()" value="Производство работает 24/7">
         <label>Менеджер проекта</label>
@@ -337,18 +369,32 @@
       </div>
     </details>
 
+    <!-- ГАЛЕРЕЯ -->
     <details class="section" open>
-      <summary>4. Смета</summary>
+      <summary>🖼 Примеры работ и цены</summary>
       <div class="body">
-        <div id="estRows"></div>
-        <button class="accent" onclick="addRow()">+ Добавить строку</button>
-        <label style="margin-top:16px;">Скидка, %</label>
-        <input type="number" id="discount" oninput="updateAll()" value="0" min="0" max="90">
+        <label>Фото изделий (до 9 штук)</label>
+        <input type="file" id="galleryInput" accept="image/*" multiple onchange="loadGallery(event)">
+        <p style="font-size:11px; color:#888; margin:8px 0 0;">У каждого фото укажите название и цену.</p>
+        <div id="galleryList" style="margin-top:12px;"></div>
+        <button class="tiny" onclick="clearGallery()">Убрать все фото</button>
       </div>
     </details>
 
+    <!-- ПРАЙС -->
     <details class="section">
-      <summary>5. Подпись и печать</summary>
+      <summary>📋 Текст о прайс-листе</summary>
+      <div class="body">
+        <p style="font-size:12px; color:#666; margin:0 0 8px;">
+          Этот текст появится в документе в разделе «Прайс-лист».
+        </p>
+        <textarea id="priceText" rows="4" oninput="updateAll()" style="font-family:inherit;">Полный прайс-лист на все модели, материалы и услуги мастерской — в приложении к этому предложению. Если нужной позиции нет в прайсе, мы рассчитаем её индивидуально и вернёмся с уточнением в течение одного рабочего дня.</textarea>
+      </div>
+    </details>
+
+    <!-- ПОДПИСЬ -->
+    <details class="section">
+      <summary>4. Подпись и печать</summary>
       <div class="body">
         <label>Подпись руководителя (PNG)</label>
         <input type="file" id="signInput" accept="image/*" onchange="loadImage(event,'sign')">
@@ -368,128 +414,111 @@
     <button onclick="downloadWord()">💾 Скачать Word (.doc)</button>
     <button class="gray" onclick="openPreview()">👁 Просмотр «как в Word»</button>
     <button class="gray" onclick="window.print()">🖨 Печать</button>
+    <p style="font-size:11px;color:#888;margin:8px 0 0;">
+      💡 Для отправки клиенту рекомендуем PDF — фон и оформление сохранятся точнее.
+    </p>
   </div>
 
-  <div id="preview">
-    <div class="logo-block" id="logoBlock" style="display:none;">
-      <img id="logoInDoc" alt="">
-    </div>
-    <h1>Коммерческое предложение</h1>
-    <p class="subtitle" id="p-subtitle">—</p>
-
-    <div class="header-info">
-      <p><strong>Кому:</strong> <span id="p-client">—</span></p>
-      <p><strong>От:</strong> <span id="p-myCompany">—</span></p>
-      <p><strong>Дата:</strong> <span id="p-date">—</span></p>
-      <p><strong>Исх. номер:</strong> <span id="p-docnum">—</span></p>
-    </div>
-
-    <h2>1. Вступление</h2>
-    <p>Уважаемый(ая) <span id="p-contactName">—</span>!</p>
-    <p id="p-intro">—</p>
-    <p>Наша мастерская работает уже <strong><span id="p-years">—</span></strong> лет и располагает парком из <strong><span id="p-printers">—</span></strong> 3D-принтеров, работающих круглосуточно.</p>
-
-    <h2>2. Предмет предложения</h2>
-    <p><strong>Состав работ:</strong></p>
-    <ul id="p-worksList"></ul>
-
-    <div id="blockWhy">
-      <h2>Почему выбирают нас</h2>
-      <ol>
-        <li><strong>Парк из <span id="p-printers2">—</span> принтеров</strong>, работающих 24/7 — обеспечиваем высокий темп даже на больших тиражах.</li>
-        <li><strong>Собственная мастерская.</strong> Контролируем каждый этап — от подготовки файла до упаковки.</li>
-        <li><strong>Широкий выбор материалов:</strong> <span id="p-materials">—</span>.</li>
-        <li><strong>Высокая точность печати</strong> — до <span id="p-accuracy">—</span>.</li>
-        <li><strong>Опыт</strong> в изготовлении фигурок, сувениров и коллекционных моделей.</li>
-        <li id="liQC"><strong>Контроль качества.</strong> Каждое изделие проверяется перед отправкой.</li>
-      </ol>
-    </div>
-
-    <div id="blockGallery">
-      <h2>Примеры наших работ</h2>
-      <div class="gallery-grid" id="p-gallery"></div>
-    </div>
-
-    <div id="blockTech">
-      <h2>Материалы и технологии</h2>
-      <ul>
-        <li><strong>Технологии:</strong> <span id="p-tech">—</span>.</li>
-        <li><strong>Материалы:</strong> <span id="p-materials2">—</span>.</li>
-        <li><strong>Максимальный размер печати:</strong> <span id="p-maxSize">—</span>.</li>
-        <li><strong>Точность печати:</strong> <span id="p-accuracy2">—</span>.</li>
-        <li><strong>Постобработка:</strong> удаление поддержек, шлифовка, грунтовка, покраска.</li>
-      </ul>
-    </div>
-
-    <div id="blockSteps">
-      <h2>Этапы работы</h2>
-      <ol>
-        <li><strong>Заявка и обсуждение.</strong> Уточняем модель, тираж, материал и сроки.</li>
-        <li><strong>Расчёт стоимости.</strong> Согласовываем смету и предоплату.</li>
-        <li><strong>Подготовка файла.</strong> Слайсинг, ориентация модели, поддержки.</li>
-        <li><strong>Печать.</strong> Запуск на свободных принтерах парка.</li>
-        <li><strong>Постобработка.</strong> Удаление поддержек, шлифовка, покраска.</li>
-        <li id="liPack"><strong>Упаковка и отправка.</strong> Бережная упаковка и доставка.</li>
-      </ol>
-    </div>
-
-    <h2>Стоимость и объём работ</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Наименование</th>
-          <th>Ед. изм.</th>
-          <th>Кол-во</th>
-          <th>Цена за ед., руб.</th>
-          <th>Сумма, руб.</th>
-        </tr>
-      </thead>
-      <tbody id="p-estBody"></tbody>
-      <tfoot>
-        <tr class="total-row"><td colspan="4">ИТОГО:</td><td id="p-total">0</td></tr>
-        <tr class="total-row" id="rowDiscount" style="display:none;">
-          <td colspan="4">Скидка</td><td id="p-discount-val">0%</td>
-        </tr>
-        <tr class="total-row final-row" id="rowFinal" style="display:none;">
-          <td colspan="4">ИТОГО со скидкой:</td>
-          <td id="p-total-final">0</td>
-        </tr>
-      </tfoot>
-    </table>
-    <p class="note">* Цены указаны <span id="p-vat">—</span>.</p>
-    <p class="note">* Смета предварительная и уточняется после согласования модели.</p>
-
-    <h2>Сроки выполнения</h2>
-    <p>Ориентировочный срок — <strong><span id="p-duration">—</span></strong> с момента согласования и внесения аванса.</p>
-    <p>График производства: <span id="p-schedule">—</span>.</p>
-
-    <div id="blockTerms">
-      <h2>Условия сотрудничества</h2>
-      <ul>
-        <li><strong>Аванс:</strong> <span id="p-advance">—</span>.</li>
-        <li><strong>Окончательный расчёт:</strong> после согласования партии и подписания акта.</li>
-        <li><strong>Гарантия:</strong> замена брака за наш счёт в течение 14 дней.</li>
-      </ul>
-    </div>
-
-    <h2>Контакты</h2>
-    <div class="contacts">
-      <p>Готовы обсудить ваш проект и приступить к работе.</p>
-      <p><strong>Менеджер:</strong> <span id="p-manager">—</span></p>
-      <p><strong>Телефон:</strong> <span class="highlight" id="p-phone">—</span></p>
-      <p><strong>Email:</strong> <span id="p-email">—</span></p>
-      <p><strong>Сайт / Telegram:</strong> <span id="p-website">—</span></p>
-      <p><strong>Адрес мастерской:</strong> <span id="p-address">—</span></p>
-    </div>
-
-    <div class="sign-block" id="signBlock" style="display:none;">
-      <div class="sign-item">
-        <img id="signInDoc" alt="">
-        <div class="sign-line" id="p-signName">—</div>
+  <!-- ПРЕВЬЮ -->
+  <div id="previewWrap">
+    <div id="preview" class="theme-classic">
+      <div class="logo-block" id="logoBlock" style="display:none;">
+        <img id="logoInDoc" alt="">
       </div>
-      <div class="sign-item" id="stampWrap" style="display:none;">
-        <img id="stampInDoc" alt="">
-        <div class="sign-line">М.П.</div>
+      <h1>Коммерческое предложение</h1>
+      <p class="subtitle" id="p-subtitle">—</p>
+
+      <div class="header-info">
+        <p><strong>Кому:</strong> <span id="p-client">—</span></p>
+        <p><strong>От:</strong> <span id="p-myCompany">—</span></p>
+        <p><strong>Дата:</strong> <span id="p-date">—</span></p>
+        <p><strong>Исх. номер:</strong> <span id="p-docnum">—</span></p>
+      </div>
+
+      <h2>1. Вступление</h2>
+      <p id="p-greeting">Здравствуйте!</p>
+      <p id="p-intro">—</p>
+      <p>Наша мастерская работает уже <strong><span id="p-years">—</span></strong> и располагает парком из <strong><span id="p-printers">—</span></strong> 3D-принтеров, работающих круглосуточно.</p>
+
+      <h2>2. Предмет предложения</h2>
+      <p><strong>Состав работ:</strong></p>
+      <ul id="p-worksList"></ul>
+
+      <div id="blockWhy">
+        <h2>Почему выбирают нас</h2>
+        <ol>
+          <li><strong>Парк из <span id="p-printers2">—</span> принтеров</strong>, работающих 24/7 — обеспечиваем высокий темп даже на больших тиражах.</li>
+          <li><strong>Собственная мастерская.</strong> Контролируем каждый этап — от подготовки файла до упаковки.</li>
+          <li><strong>Широкий выбор материалов:</strong> <span id="p-materials">—</span>.</li>
+          <li><strong>Высокая точность печати</strong> — до <span id="p-accuracy">—</span>.</li>
+          <li><strong>Разные масштабы заказов</strong> — от одной фигурки до партии в несколько сотен штук.</li>
+          <li id="liQC"><strong>Контроль качества.</strong> Каждое изделие проверяется перед отправкой.</li>
+        </ol>
+      </div>
+
+      <div id="blockTech">
+        <h2>Материалы и технологии</h2>
+        <ul>
+          <li><strong>Технологии:</strong> <span id="p-tech">—</span>.</li>
+          <li><strong>Материалы:</strong> <span id="p-materials2">—</span>.</li>
+          <li><strong>Максимальный размер печати:</strong> <span id="p-maxSize">—</span>.</li>
+          <li><strong>Точность печати:</strong> <span id="p-accuracy2">—</span>.</li>
+          <li><strong>Постобработка:</strong> удаление поддержек, шлифовка, грунтовка, покраска.</li>
+        </ul>
+      </div>
+
+      <div id="blockGallery">
+        <h2>Примеры наших работ и цены</h2>
+        <div class="gallery-grid" id="p-gallery"></div>
+        <p class="note">* Цены указаны за единицу изделия в стандартной комплектации. Точная стоимость зависит от тиража, материала и сложности постобработки.</p>
+      </div>
+
+      <div id="blockSteps">
+        <h2>Этапы работы</h2>
+        <ol>
+          <li><strong>Заявка и обсуждение.</strong> Уточняем модель, тираж, материал и сроки.</li>
+          <li><strong>Расчёт стоимости.</strong> Согласовываем цены и предоплату.</li>
+          <li><strong>Подготовка файла.</strong> Слайсинг, ориентация модели, поддержки.</li>
+          <li><strong>Печать.</strong> Запуск на свободных принтерах парка.</li>
+          <li><strong>Постобработка.</strong> Удаление поддержек, шлифовка, покраска.</li>
+          <li id="liPack"><strong>Упаковка и отправка.</strong> Бережная упаковка и доставка.</li>
+        </ol>
+      </div>
+
+      <div id="blockTerms">
+        <h2>Условия сотрудничества</h2>
+        <ul>
+          <li><strong>Оплата:</strong> <span id="p-advance">—</span>.</li>
+          <li><strong>Гарантия:</strong> замена брака за наш счёт в течение 14 дней.</li>
+          <li><strong>Сроки:</strong> ориентировочно <strong><span id="p-duration">—</span></strong> с момента согласования и внесения предоплаты.</li>
+          <li><strong>График производства:</strong> <span id="p-schedule">—</span>.</li>
+        </ul>
+      </div>
+
+      <div id="blockPrice">
+        <h2>Прайс-лист</h2>
+        <div class="price-note" id="p-priceText">—</div>
+      </div>
+
+      <h2>Контакты</h2>
+      <div class="contacts">
+        <p>Готовы обсудить ваш проект и приступить к работе.</p>
+        <p><strong>Менеджер:</strong> <span id="p-manager">—</span></p>
+        <p><strong>Телефон:</strong> <span class="highlight" id="p-phone">—</span></p>
+        <p><strong>Email:</strong> <span id="p-email">—</span></p>
+        <p><strong>Сайт / Telegram:</strong> <span id="p-website">—</span></p>
+        <p><strong>Адрес мастерской:</strong> <span id="p-address">—</span></p>
+      </div>
+
+      <div class="sign-block" id="signBlock" style="display:none;">
+        <div class="sign-item">
+          <img id="signInDoc" alt="">
+          <div class="sign-line" id="p-signName">—</div>
+        </div>
+        <div class="sign-item" id="stampWrap" style="display:none;">
+          <img id="stampInDoc" alt="">
+          <div class="sign-line">М.П.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -512,47 +541,15 @@ var fieldIds = ["myCompany","client","date","docnum","contactName","years","prin
                 "advance","schedule","manager","phone","email","website","vat","signName"];
 var requiredFields = ["myCompany","client","contactName","duration","address","phone"];
 
-var STORAGE_KEY    = "kp_3d_v3";
-var COUNTER_KEY    = "kp_3d_counter_v3";
-var IMG_PREFIX     = "kp_3d_img_v3_";
-var GALLERY_KEY    = "kp_3d_gallery_v3";
-var CATALOG_KEY    = "kp_3d_catalog_v3";
-var CUSTOM_CAT_KEY = "kp_3d_customcat_v3";
+var STORAGE_KEY    = "kp_3d_v5";
+var COUNTER_KEY    = "kp_3d_counter_v5";
+var IMG_PREFIX     = "kp_3d_img_v5_";
+var GALLERY_KEY    = "kp_3d_gallery_v5";
+var BG_KEY         = "kp_3d_bg_v5";
+var THEME_KEY      = "kp_3d_theme_v5";
 
-var galleryImages = [];
-var customModels  = [];
-var selectedModelId = null;
-
-var builtInCatalog = [
-  { id:"f1", cat:"Фигурки", name:"Дракон, высота 12 см",         volume: 45,  infill:15, material:"pla",   post:200, desc:"Классическая модель, средняя детализация" },
-  { id:"f2", cat:"Фигурки", name:"Воин, высота 15 см",           volume: 85,  infill:15, material:"pla",   post:250, desc:"Высокая детализация доспехов" },
-  { id:"f3", cat:"Фигурки", name:"Волшебник, высота 18 см",      volume:110,  infill:15, material:"resin", post:350, desc:"Смола, тонкая проработка мантии" },
-  { id:"f4", cat:"Фигурки", name:"Кот-учёный, 10 см",            volume: 35,  infill:20, material:"pla",   post:150, desc:"Универсальный сувенир" },
-  { id:"f5", cat:"Фигурки", name:"Робот-мех, 20 см",             volume:160,  infill:15, material:"petg",  post:400, desc:"Прочная модель, можно красить" },
-  { id:"f6", cat:"Фигурки", name:"Гном-садовник, 25 см",         volume:220,  infill:10, material:"petg",  post:450, desc:"Для сада, устойчив к улице" },
-  { id:"s1", cat:"Статуэтки", name:"Бюст, 15 см",                 volume: 90,  infill:10, material:"resin", post:500, desc:"Фотополимер, гладкая поверхность" },
-  { id:"s2", cat:"Статуэтки", name:"Абстракция «Волна», 20 см",   volume:140,  infill:12, material:"pla",   post:350, desc:"Декор для интерьера" },
-  { id:"s3", cat:"Статуэтки", name:"Оскар-стиль, 22 см",          volume:180,  infill:15, material:"resin", post:600, desc:"Премиальная подарочная модель" },
-  { id:"su1", cat:"Сувениры", name:"Магнит на холодильник",        volume:  8,  infill:25, material:"pla",   post: 40, desc:"Мелкая серия, дешёвая себестоимость" },
-  { id:"su2", cat:"Сувениры", name:"Подставка под телефон",       volume: 55,  infill:20, material:"petg",  post:120, desc:"Функциональный сувенир" },
-  { id:"su3", cat:"Сувениры", name:"Копилка, 12 см",              volume: 95,  infill:10, material:"pla",   post:180, desc:"Популярна как подарок" },
-  { id:"su4", cat:"Сувениры", name:"Ёлочная игрушка",             volume: 18,  infill:20, material:"pla",   post: 60, desc:"Сезонная позиция" },
-  { id:"b1", cat:"Брелоки", name:"Брелок-логотип",                volume:  4,  infill:30, material:"pla",   post: 25, desc:"Под ваш логотип, минимальная цена" },
-  { id:"b2", cat:"Брелоки", name:"Брелок-фигурка, 4 см",          volume:  7,  infill:25, material:"resin", post: 60, desc:"Хорошая детализация" },
-  { id:"b3", cat:"Брелоки", name:"Брелок-открывалка",             volume: 12,  infill:30, material:"petg",  post: 40, desc:"Прочный, функциональный" },
-  { id:"fu1", cat:"Функциональные", name:"Кронштейн",             volume: 40,  infill:40, material:"petg",  post: 80, desc:"Несущая деталь, прочная" },
-  { id:"fu2", cat:"Функциональные", name:"Шестерёнка",            volume: 15,  infill:50, material:"abs",   post: 60, desc:"Техническая деталь" },
-  { id:"fu3", cat:"Функциональные", name:"Корпус для платы",      volume: 60,  infill:25, material:"abs",   post:120, desc:"Под электронику" },
-  { id:"fu4", cat:"Функциональные", name:"Втулка / переходник",   volume: 10,  infill:60, material:"petg",  post: 40, desc:"Плотная, износостойкая" }
-];
-
-var materialsData = {
-  pla:   { name: "PLA",         density: 1.24, pricePerGram: 3.0, speed: 12 },
-  petg:  { name: "PETG",        density: 1.27, pricePerGram: 3.5, speed: 10 },
-  abs:   { name: "ABS",         density: 1.04, pricePerGram: 3.5, speed: 10 },
-  tpu:   { name: "TPU",         density: 1.21, pricePerGram: 6.0, speed: 6  },
-  resin: { name: "Фотополимер", density: 1.10, pricePerGram: 8.0, speed: 15 }
-};
+var galleryItems = [];
+var currentBg = null;
 
 var templates = {
   catalog: {
@@ -606,6 +603,7 @@ var templates = {
 };
 
 function applyAccent(color) { document.documentElement.style.setProperty("--accent", color); }
+
 function applyDocStyle() {
   var font = document.getElementById("docFont").value;
   var size = document.getElementById("docSize").value;
@@ -613,125 +611,61 @@ function applyDocStyle() {
   document.getElementById("preview").style.setProperty("--doc-size", size);
 }
 
-function allModels() { return builtInCatalog.concat(customModels); }
-
-function categories() {
-  var set = {};
-  var list = allModels();
-  for (var i = 0; i < list.length; i++) set[list[i].cat] = true;
-  return Object.keys(set);
-}
-
-function renderCategoryFilter() {
-  var sel = document.getElementById("catFilter");
-  var current = sel.value || "all";
-  sel.innerHTML = '<option value="all">Все категории</option>';
-  var cats = categories();
-  for (var i = 0; i < cats.length; i++) {
-    var opt = document.createElement("option");
-    opt.value = cats[i];
-    opt.textContent = cats[i];
-    sel.appendChild(opt);
+function applyTheme(theme) {
+  var el = document.getElementById("preview");
+  el.className = el.className.replace(/theme-\S+/g, "").trim();
+  el.classList.add("theme-" + theme);
+  var btns = document.querySelectorAll(".theme-btn");
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].classList.toggle("active", btns[i].dataset.theme === theme);
   }
-  if (current !== "all" && cats.indexOf(current) === -1) current = "all";
-  sel.value = current;
+  localStorage.setItem(THEME_KEY, theme);
 }
 
-function renderCatalog() {
-  var listEl = document.getElementById("catalogList");
-  var cat = document.getElementById("catFilter").value || "all";
-  var list = allModels();
-  listEl.innerHTML = "";
-  var shown = 0;
-  for (var i = 0; i < list.length; i++) {
-    var m = list[i];
-    if (cat !== "all" && m.cat !== cat) continue;
-    shown++;
-    var div = document.createElement("div");
-    div.className = "catalog-item" + (m.id === selectedModelId ? " selected" : "");
-    var matName = (materialsData[m.material] || materialsData.pla).name;
-    var isCustom = customModels.indexOf(m) !== -1;
-    div.innerHTML =
-      '<div class="info">' +
-        '<div class="name">' + m.name + '</div>' +
-        '<div class="meta">' + m.cat + ' • ' + m.volume + ' см³ • ' + m.infill + '% • ' + matName + (m.desc ? ' • ' + m.desc : '') + '</div>' +
-      '</div>' +
-      '<div class="actions">' +
-        (isCustom ? '<button class="small cat-remove" onclick="removeCustomModel(event,\'' + m.id + '\')">✕</button>' : '') +
-      '</div>';
-    (function(model){
-      div.addEventListener("click", function(){ selectModel(model.id); });
-    })(m);
-    listEl.appendChild(div);
+function applyBackground() {
+  var prev = document.getElementById("preview");
+  var overlay = parseFloat(document.getElementById("bgOverlay").value) || 0.85;
+  prev.style.setProperty("--bg-overlay", overlay);
+  if (currentBg) {
+    prev.style.backgroundImage = "url('" + currentBg + "')";
+    prev.classList.add("with-bg");
+  } else {
+    prev.style.backgroundImage = "";
+    prev.classList.remove("with-bg");
   }
-  if (shown === 0) listEl.innerHTML = '<div style="padding:14px; color:#888; font-size:13px; text-align:center;">В этой категории нет моделей</div>';
-  document.getElementById("modelCount").textContent = "(" + shown + ")";
 }
 
-function selectModel(id) {
-  var list = allModels();
-  var m = null;
-  for (var i = 0; i < list.length; i++) if (list[i].id === id) { m = list[i]; break; }
-  if (!m) return;
-  selectedModelId = id;
-  document.getElementById("calcVolume").value   = m.volume;
-  document.getElementById("calcInfill").value   = m.infill;
-  document.getElementById("calcMaterial").value = m.material;
-  document.getElementById("calcPost").value     = m.post;
-  calcUpdate();
-  renderCatalog();
-  setStatus("Выбрана модель: " + m.name, false);
-}
-
-function showAddModelForm() {
-  document.getElementById("addModelForm").style.display = "block";
-  document.getElementById("newModelName").focus();
-}
-function hideAddModelForm() {
-  document.getElementById("addModelForm").style.display = "none";
-  document.getElementById("newModelName").value = "";
-  document.getElementById("newModelDesc").value = "";
-}
-function saveNewModel() {
-  var name = document.getElementById("newModelName").value.trim();
-  if (!name) { setStatus("Укажите название модели", true); return; }
-  var m = {
-    id: "c_" + Date.now(),
-    cat: document.getElementById("newModelCat").value,
-    name: name,
-    volume: parseFloat(document.getElementById("newModelVolume").value) || 0,
-    infill: parseFloat(document.getElementById("newModelInfill").value) || 0,
-    material: document.getElementById("newModelMaterial").value,
-    post: parseFloat(document.getElementById("newModelPost").value) || 0,
-    desc: document.getElementById("newModelDesc").value.trim()
+function loadBackground(event) {
+  var file = event.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    currentBg = e.target.result;
+    try { localStorage.setItem(BG_KEY, currentBg); } catch(err) { setStatus("Фон слишком большой", true); }
+    document.getElementById("bgPreview").src = currentBg;
+    document.getElementById("bgPreview").style.display = "block";
+    applyBackground();
+    updateAll();
+    setStatus("Фон загружен", false);
   };
-  customModels.push(m);
-  saveCustomModels();
-  hideAddModelForm();
-  renderCategoryFilter();
-  renderCatalog();
-  setStatus("Модель добавлена в каталог", false);
+  reader.readAsDataURL(file);
 }
-function removeCustomModel(event, id) {
-  event.stopPropagation();
-  var idx = -1;
-  for (var i = 0; i < customModels.length; i++) if (customModels[i].id === id) { idx = i; break; }
-  if (idx === -1) return;
-  if (!confirm("Удалить модель «" + customModels[idx].name + "» из каталога?")) return;
-  if (selectedModelId === id) selectedModelId = null;
-  customModels.splice(idx, 1);
-  saveCustomModels();
-  renderCategoryFilter();
-  renderCatalog();
+
+function removeBackground() {
+  currentBg = null;
+  localStorage.removeItem(BG_KEY);
+  document.getElementById("bgPreview").style.display = "none";
+  document.getElementById("bgInput").value = "";
+  applyBackground();
+  updateAll();
 }
-function saveCustomModels() {
-  try { localStorage.setItem(CUSTOM_CAT_KEY, JSON.stringify(customModels)); } catch(e){}
-}
-function restoreCustomModels() {
-  try {
-    var raw = localStorage.getItem(CUSTOM_CAT_KEY);
-    if (raw) customModels = JSON.parse(raw) || [];
-  } catch(e) { customModels = []; }
+
+function restoreBackground() {
+  var raw = localStorage.getItem(BG_KEY);
+  if (raw) {
+    currentBg = raw;
+    document.getElementById("bgPreview").src = raw;
+    document.getElementById("bgPreview").style.display = "block";
+  }
 }
 
 function updateAll() {
@@ -749,6 +683,11 @@ function updateAll() {
   var p2 = document.getElementById("p-materials2"); if (p2) p2.textContent = mt || "—";
   var p3 = document.getElementById("p-accuracy2"); if (p3) p3.textContent = ac || "—";
 
+  var name = document.getElementById("contactName").value.trim();
+  document.getElementById("p-greeting").textContent = name
+    ? "Здравствуйте, " + name + "!"
+    : "Здравствуйте!";
+
   var tplKey = document.getElementById("template").value;
   var tpl = templates[tplKey] || templates.catalog;
   document.getElementById("p-subtitle").textContent = tpl.subtitle;
@@ -762,19 +701,21 @@ function updateAll() {
     list.appendChild(li);
   }
 
+  document.getElementById("p-priceText").textContent = document.getElementById("priceText").value;
+
   document.getElementById("blockWhy").style.display   = document.getElementById("secWhy").checked   ? "block" : "none";
   document.getElementById("blockTech").style.display  = document.getElementById("secTech").checked  ? "block" : "none";
   document.getElementById("blockSteps").style.display = document.getElementById("secSteps").checked ? "block" : "none";
   document.getElementById("blockTerms").style.display = document.getElementById("secTerms").checked ? "block" : "none";
-  document.getElementById("liPack").style.display     = document.getElementById("secPack").checked  ? "list-item" : "none";
+  document.getElementById("blockPrice").style.display = document.getElementById("secPrice").checked ? "block" : "none";
   document.getElementById("liQC").style.display       = document.getElementById("secQC").checked    ? "list-item" : "none";
+  document.getElementById("liPack").style.display     = document.getElementById("secPack").checked  ? "list-item" : "none";
 
-  var galleryOn = document.getElementById("secGallery").checked && galleryImages.length > 0;
+  var galleryOn = document.getElementById("secGallery").checked && galleryItems.length > 0;
   document.getElementById("blockGallery").style.display = galleryOn ? "block" : "none";
 
-  renderGallery();
+  renderGalleryDoc();
   renumberSections();
-  renderTable();
   autoSave();
 }
 
@@ -795,17 +736,17 @@ function renumberSections() {
 function loadGallery(event) {
   var files = event.target.files;
   if (!files || !files.length) return;
-  var remaining = 9 - galleryImages.length;
+  var remaining = 9 - galleryItems.length;
   if (remaining <= 0) { setStatus("Максимум 9 фото", true); event.target.value=""; return; }
   var toLoad = Math.min(files.length, remaining);
   var loaded = 0;
   for (var i = 0; i < toLoad; i++) {
     (function(file){
       compressImage(file, 500, function(dataUrl) {
-        galleryImages.push(dataUrl);
+        galleryItems.push({ src: dataUrl, name: "", price: "" });
         loaded++;
         if (loaded === toLoad) {
-          renderGallery(); saveGallery(); updateAll();
+          renderGalleryForm(); renderGalleryDoc(); saveGallery(); updateAll();
           setStatus("Загружено фото: " + loaded, false);
         }
       });
@@ -813,6 +754,7 @@ function loadGallery(event) {
   }
   event.target.value = "";
 }
+
 function compressImage(file, maxWidth, callback) {
   var reader = new FileReader();
   reader.onload = function(e) {
@@ -832,96 +774,83 @@ function compressImage(file, maxWidth, callback) {
   };
   reader.readAsDataURL(file);
 }
-function renderGallery() {
-  var thumbs = document.getElementById("galleryThumbs");
-  thumbs.innerHTML = "";
-  for (var i = 0; i < galleryImages.length; i++) {
+
+function renderGalleryForm() {
+  var wrap = document.getElementById("galleryList");
+  wrap.innerHTML = "";
+  for (var i = 0; i < galleryItems.length; i++) {
     (function(idx){
-      var wrap = document.createElement("div");
-      wrap.className = "gallery-thumb";
+      var item = galleryItems[idx];
+      var div = document.createElement("div");
+      div.className = "gal-item";
+      var thumb = document.createElement("div");
+      thumb.className = "thumb";
       var img = document.createElement("img");
-      img.src = galleryImages[idx];
-      var btn = document.createElement("button");
-      btn.className = "gallery-remove";
-      btn.textContent = "✕";
-      btn.onclick = function(){ removeGallery(idx); };
-      wrap.appendChild(img); wrap.appendChild(btn);
-      thumbs.appendChild(wrap);
+      img.src = item.src;
+      var rmBtn = document.createElement("button");
+      rmBtn.className = "gal-remove";
+      rmBtn.textContent = "✕";
+      rmBtn.onclick = function(){ removeGalleryItem(idx); };
+      thumb.appendChild(img); thumb.appendChild(rmBtn);
+
+      var fields = document.createElement("div");
+      fields.className = "fields";
+      var nameInp = document.createElement("input");
+      nameInp.type = "text"; nameInp.placeholder = "Название работы"; nameInp.value = item.name;
+      nameInp.oninput = function(){ galleryItems[idx].name = this.value; renderGalleryDoc(); autoSave(); };
+      var priceInp = document.createElement("input");
+      priceInp.type = "text"; priceInp.placeholder = "Цена, например: от 1 500 ₽"; priceInp.value = item.price;
+      priceInp.oninput = function(){ galleryItems[idx].price = this.value; renderGalleryDoc(); autoSave(); };
+
+      fields.appendChild(nameInp); fields.appendChild(priceInp);
+      div.appendChild(thumb); div.appendChild(fields);
+      wrap.appendChild(div);
     })(i);
   }
+}
+
+function renderGalleryDoc() {
   var grid = document.getElementById("p-gallery");
   grid.innerHTML = "";
-  for (var k = 0; k < galleryImages.length; k++) {
-    var im = document.createElement("img");
-    im.src = galleryImages[k];
-    grid.appendChild(im);
+  for (var i = 0; i < galleryItems.length; i++) {
+    var item = galleryItems[i];
+    var card = document.createElement("div");
+    card.className = "gallery-card";
+    var img = document.createElement("img");
+    img.src = item.src;
+    card.appendChild(img);
+    if (item.name) {
+      var nameEl = document.createElement("div");
+      nameEl.className = "g-name"; nameEl.textContent = item.name;
+      card.appendChild(nameEl);
+    }
+    if (item.price) {
+      var priceEl = document.createElement("div");
+      priceEl.className = "g-price"; priceEl.textContent = item.price;
+      card.appendChild(priceEl);
+    }
+    grid.appendChild(card);
   }
 }
-function removeGallery(idx) { galleryImages.splice(idx, 1); renderGallery(); saveGallery(); updateAll(); }
+
+function removeGalleryItem(idx) { galleryItems.splice(idx, 1); renderGalleryForm(); renderGalleryDoc(); saveGallery(); updateAll(); }
 function clearGallery() {
-  if (!galleryImages.length) return;
-  if (!confirm("Убрать все фото из галереи?")) return;
-  galleryImages = []; renderGallery(); saveGallery(); updateAll();
+  if (!galleryItems.length) return;
+  if (!confirm("Убрать все фото?")) return;
+  galleryItems = []; renderGalleryForm(); renderGalleryDoc(); saveGallery(); updateAll();
 }
 function saveGallery() {
-  try { localStorage.setItem(GALLERY_KEY, JSON.stringify(galleryImages)); }
+  try { localStorage.setItem(GALLERY_KEY, JSON.stringify(galleryItems)); }
   catch(e) { setStatus("Галерея слишком большая", true); }
 }
 function restoreGallery() {
   try {
     var raw = localStorage.getItem(GALLERY_KEY);
-    if (raw) galleryImages = JSON.parse(raw) || [];
-  } catch(e) { galleryImages = []; }
-}
-
-function calcCompute() {
-  var v = parseFloat(document.getElementById("calcVolume").value) || 0;
-  var infill = parseFloat(document.getElementById("calcInfill").value) || 0;
-  var matKey = document.getElementById("calcMaterial").value;
-  var mat = materialsData[matKey] || materialsData.pla;
-  var hourRate = parseFloat(document.getElementById("calcHourRate").value) || 0;
-  var post = parseFloat(document.getElementById("calcPost").value) || 0;
-
-  var effFactor = 0.25 + 0.75 * (infill / 100);
-  var weight = v * mat.density * effFactor;
-  var timeH = (v * effFactor) / mat.speed;
-  var materialCost = weight * mat.pricePerGram;
-  var machineCost = timeH * hourRate;
-  var total = materialCost + machineCost + post;
-
-  return {
-    weight: weight, timeH: timeH,
-    materialCost: materialCost, machineCost: machineCost,
-    post: post, total: total,
-    matName: mat.name, infill: infill
-  };
-}
-function calcUpdate() {
-  var r = calcCompute();
-  document.getElementById("calcResult").innerHTML =
-    "<strong>Вес изделия:</strong> " + r.weight.toFixed(1) + " г<br>" +
-    "<strong>Время печати:</strong> " + r.timeH.toFixed(1) + " ч<br>" +
-    "<strong>Материал:</strong> " + r.materialCost.toFixed(0) + " ₽<br>" +
-    "<strong>Работа станка:</strong> " + r.machineCost.toFixed(0) + " ₽<br>" +
-    "<strong>Постобработка:</strong> " + r.post.toFixed(0) + " ₽<br>" +
-    "<strong>Итого за 1 шт.:</strong> " + r.total.toFixed(0) + " ₽";
-  autoSave();
-}
-function calcAddToEstimate() {
-  var r = calcCompute();
-  if (!r.weight) { setStatus("Укажите объём модели", true); return; }
-  var modelName = null;
-  if (selectedModelId) {
-    var list = allModels();
-    for (var i = 0; i < list.length; i++) if (list[i].id === selectedModelId) { modelName = list[i].name; break; }
-  }
-  var name = modelName
-    ? modelName + " — печать " + r.matName + " (" + r.infill + "% заполнение)"
-    : "Печать " + r.matName + ", заполнение " + r.infill + "% (~" + r.weight.toFixed(0) + " г)";
-  addRow(name, "шт.", 1, Math.round(r.total));
-  renderTable();
-  autoSave();
-  setStatus("Позиция добавлена в смету", false);
+    if (raw) galleryItems = JSON.parse(raw) || [];
+    if (galleryItems.length && typeof galleryItems[0] === "string") {
+      galleryItems = galleryItems.map(function(src){ return { src: src, name: "", price: "" }; });
+    }
+  } catch(e) { galleryItems = []; }
 }
 
 function collectData() {
@@ -931,39 +860,26 @@ function collectData() {
     if (el) data[fieldIds[i]] = el.value;
   }
   data.template   = document.getElementById("template").value;
-  data.discount   = document.getElementById("discount").value;
+  data.priceText  = document.getElementById("priceText").value;
   data.accentColor= document.getElementById("accentColor").value;
   data.docFont    = document.getElementById("docFont").value;
   data.docSize    = document.getElementById("docSize").value;
+  data.theme      = localStorage.getItem(THEME_KEY) || "classic";
+  data.bgOverlay  = document.getElementById("bgOverlay").value;
   data.secWhy     = document.getElementById("secWhy").checked;
-  data.secGallery = document.getElementById("secGallery").checked;
   data.secTech    = document.getElementById("secTech").checked;
+  data.secGallery = document.getElementById("secGallery").checked;
   data.secSteps   = document.getElementById("secSteps").checked;
   data.secTerms   = document.getElementById("secTerms").checked;
-  data.secPack    = document.getElementById("secPack").checked;
+  data.secPrice   = document.getElementById("secPrice").checked;
   data.secQC      = document.getElementById("secQC").checked;
-  data.calcVolume = document.getElementById("calcVolume").value;
-  data.calcInfill = document.getElementById("calcInfill").value;
-  data.calcMaterial = document.getElementById("calcMaterial").value;
-  data.calcHourRate = document.getElementById("calcHourRate").value;
-  data.calcPost = document.getElementById("calcPost").value;
-
-  data.estRows = [];
-  var rows = document.getElementById("estRows").getElementsByClassName("est-row");
-  for (var j = 0; j < rows.length; j++) {
-    var r = rows[j];
-    data.estRows.push({
-      name:  r.querySelector(".r-name").value,
-      unit:  r.querySelector(".r-unit").value,
-      qty:   r.querySelector(".r-qty").value,
-      price: r.querySelector(".r-price").value
-    });
-  }
+  data.secPack    = document.getElementById("secPack").checked;
   data.imgLogo  = localStorage.getItem(IMG_PREFIX + "logo")  || null;
   data.imgSign  = localStorage.getItem(IMG_PREFIX + "sign")  || null;
   data.imgStamp = localStorage.getItem(IMG_PREFIX + "stamp") || null;
   return data;
 }
+
 function autoSave() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData()));
@@ -975,6 +891,7 @@ function setStatus(msg, isErr) {
   el.textContent = msg;
   el.className = "status" + (isErr ? " err" : "");
 }
+
 function restoreDraft() {
   var raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return false;
@@ -984,30 +901,22 @@ function restoreDraft() {
       if (d[fieldIds[i]] !== undefined) document.getElementById(fieldIds[i]).value = d[fieldIds[i]];
     }
     if (d.template)    document.getElementById("template").value = d.template;
-    if (d.discount !== undefined) document.getElementById("discount").value = d.discount;
+    if (d.priceText)   document.getElementById("priceText").value = d.priceText;
     if (d.accentColor) { document.getElementById("accentColor").value = d.accentColor; applyAccent(d.accentColor); }
     if (d.docFont)     document.getElementById("docFont").value = d.docFont;
     if (d.docSize)     document.getElementById("docSize").value = d.docSize;
+    if (d.theme)       applyTheme(d.theme);
+    if (d.bgOverlay)   document.getElementById("bgOverlay").value = d.bgOverlay;
     if (d.secWhy     !== undefined) document.getElementById("secWhy").checked     = d.secWhy;
-    if (d.secGallery !== undefined) document.getElementById("secGallery").checked = d.secGallery;
     if (d.secTech    !== undefined) document.getElementById("secTech").checked    = d.secTech;
+    if (d.secGallery !== undefined) document.getElementById("secGallery").checked = d.secGallery;
     if (d.secSteps   !== undefined) document.getElementById("secSteps").checked   = d.secSteps;
     if (d.secTerms   !== undefined) document.getElementById("secTerms").checked   = d.secTerms;
-    if (d.secPack    !== undefined) document.getElementById("secPack").checked    = d.secPack;
+    if (d.secPrice   !== undefined) document.getElementById("secPrice").checked   = d.secPrice;
     if (d.secQC      !== undefined) document.getElementById("secQC").checked      = d.secQC;
-    if (d.calcVolume   !== undefined) document.getElementById("calcVolume").value   = d.calcVolume;
-    if (d.calcInfill   !== undefined) document.getElementById("calcInfill").value   = d.calcInfill;
-    if (d.calcMaterial !== undefined) document.getElementById("calcMaterial").value = d.calcMaterial;
-    if (d.calcHourRate !== undefined) document.getElementById("calcHourRate").value = d.calcHourRate;
-    if (d.calcPost     !== undefined) document.getElementById("calcPost").value     = d.calcPost;
+    if (d.secPack    !== undefined) document.getElementById("secPack").checked    = d.secPack;
     applyDocStyle();
-    document.getElementById("estRows").innerHTML = "";
-    if (d.estRows && d.estRows.length) {
-      for (var j = 0; j < d.estRows.length; j++) {
-        var r = d.estRows[j];
-        addRow(r.name, r.unit, r.qty, r.price);
-      }
-    } else { addDefaultRows(); }
+    applyBackground();
     if (d.imgLogo)  applyImage("logo",  d.imgLogo);
     if (d.imgSign)  applyImage("sign",  d.imgSign);
     if (d.imgStamp) applyImage("stamp", d.imgStamp);
@@ -1017,8 +926,8 @@ function restoreDraft() {
 
 function saveDraft() {
   var data = collectData();
-  data.gallery = galleryImages;
-  data.customModels = customModels;
+  data.gallery = galleryItems;
+  data.bg = currentBg;
   var blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
@@ -1028,6 +937,7 @@ function saveDraft() {
   URL.revokeObjectURL(url);
   setStatus("Черновик скачан", false);
 }
+
 function importDraft(event) {
   var file = event.target.files[0]; if (!file) return;
   var reader = new FileReader();
@@ -1038,68 +948,51 @@ function importDraft(event) {
         if (d[fieldIds[i]] !== undefined) document.getElementById(fieldIds[i]).value = d[fieldIds[i]];
       }
       if (d.template) document.getElementById("template").value = d.template;
-      if (d.discount !== undefined) document.getElementById("discount").value = d.discount;
+      if (d.priceText) document.getElementById("priceText").value = d.priceText;
       if (d.accentColor) { document.getElementById("accentColor").value = d.accentColor; applyAccent(d.accentColor); }
       if (d.docFont) document.getElementById("docFont").value = d.docFont;
       if (d.docSize) document.getElementById("docSize").value = d.docSize;
-      if (d.calcVolume   !== undefined) document.getElementById("calcVolume").value   = d.calcVolume;
-      if (d.calcInfill   !== undefined) document.getElementById("calcInfill").value   = d.calcInfill;
-      if (d.calcMaterial !== undefined) document.getElementById("calcMaterial").value = d.calcMaterial;
-      if (d.calcHourRate !== undefined) document.getElementById("calcHourRate").value = d.calcHourRate;
-      if (d.calcPost     !== undefined) document.getElementById("calcPost").value     = d.calcPost;
+      if (d.theme) applyTheme(d.theme);
+      if (d.bgOverlay) document.getElementById("bgOverlay").value = d.bgOverlay;
       applyDocStyle();
-      document.getElementById("estRows").innerHTML = "";
-      if (d.estRows) for (var j=0;j<d.estRows.length;j++) {
-        var r = d.estRows[j]; addRow(r.name, r.unit, r.qty, r.price);
-      }
-      if (d.gallery && d.gallery.length) { galleryImages = d.gallery; saveGallery(); }
-      if (d.customModels && d.customModels.length) {
-        var existingIds = {};
-        for (var k = 0; k < customModels.length; k++) existingIds[customModels[k].id] = true;
-        for (var m = 0; m < d.customModels.length; m++) {
-          if (!existingIds[d.customModels[m].id]) customModels.push(d.customModels[m]);
+      if (d.bg) { currentBg = d.bg; try{localStorage.setItem(BG_KEY, currentBg);}catch(e){} document.getElementById("bgPreview").src = currentBg; document.getElementById("bgPreview").style.display="block"; }
+      applyBackground();
+      if (d.gallery && d.gallery.length) {
+        galleryItems = d.gallery;
+        if (galleryItems.length && typeof galleryItems[0] === "string") {
+          galleryItems = galleryItems.map(function(src){ return { src: src, name: "", price: "" }; });
         }
-        saveCustomModels();
-        renderCategoryFilter();
-        renderCatalog();
+        saveGallery(); renderGalleryForm();
       }
       if (d.imgLogo)  { localStorage.setItem(IMG_PREFIX+"logo",  d.imgLogo);  applyImage("logo",  d.imgLogo); }
       if (d.imgSign)  { localStorage.setItem(IMG_PREFIX+"sign",  d.imgSign);  applyImage("sign",  d.imgSign); }
       if (d.imgStamp) { localStorage.setItem(IMG_PREFIX+"stamp", d.imgStamp); applyImage("stamp", d.imgStamp); }
       updateAll();
-      calcUpdate();
       setStatus("Черновик загружен", false);
     } catch(err) { setStatus("Ошибка: файл повреждён", true); }
   };
   reader.readAsText(file);
   event.target.value = "";
 }
+
 function clearAll() {
-  if (!confirm("Очистить все поля, смету, галерею и изображения? Каталог пользовательских моделей сохранится.")) return;
+  if (!confirm("Очистить все поля, галерею и изображения?")) return;
   for (var i = 0; i < fieldIds.length; i++) document.getElementById(fieldIds[i]).value = "";
+  document.getElementById("years").value = "1";
   document.getElementById("printers").value = "32";
   document.getElementById("maxSize").value = "300×300×400 мм";
   document.getElementById("accuracy").value = "0.05–0.2 мм";
   document.getElementById("materials").value = "PLA, PETG, ABS, TPU, фотополимер (Resin)";
   document.getElementById("tech").value = "FDM и SLA/DLP";
-  document.getElementById("advance").value = "50%";
+  document.getElementById("advance").value = "Предоплата 50%, остаток — после согласования партии";
   document.getElementById("schedule").value = "Производство работает 24/7";
   document.getElementById("vat").value = "с учётом НДС";
-  document.getElementById("discount").value = "0";
-  document.getElementById("calcVolume").value = "50";
-  document.getElementById("calcInfill").value = "15";
-  document.getElementById("calcMaterial").value = "pla";
-  document.getElementById("calcHourRate").value = "50";
-  document.getElementById("calcPost").value = "150";
-  selectedModelId = null;
-  document.getElementById("estRows").innerHTML = "";
-  addDefaultRows();
+  document.getElementById("priceText").value = "Полный прайс-лист на все модели, материалы и услуги мастерской — в приложении к этому предложению. Если нужной позиции нет в прайсе, мы рассчитаем её индивидуально и вернёмся с уточнением в течение одного рабочего дня.";
+  galleryItems = []; renderGalleryForm(); renderGalleryDoc(); saveGallery();
   removeImage("logo"); removeImage("sign"); removeImage("stamp");
-  galleryImages = []; saveGallery(); renderGallery();
+  removeBackground();
   localStorage.removeItem(STORAGE_KEY);
   updateAll();
-  calcUpdate();
-  renderCatalog();
   setStatus("Форма очищена", false);
 }
 
@@ -1187,99 +1080,65 @@ function validate() {
   return ok;
 }
 
-var estContainer = document.getElementById("estRows");
-function addRow(name, unit, qty, price) {
-  name = name||""; unit = unit||""; qty = qty||""; price = price||"";
-  var div = document.createElement("div");
-  div.className = "est-row";
-  div.innerHTML =
-    '<input type="text" class="r-name" placeholder="Позиция" value="' + esc(name) + '" oninput="renderTable();autoSave();">' +
-    '<input type="text" class="r-unit" placeholder="ед." value="' + esc(unit) + '" oninput="renderTable();autoSave();">' +
-    '<input type="number" class="r-qty" placeholder="0" value="' + esc(qty) + '" oninput="renderTable();autoSave();">' +
-    '<input type="number" class="r-price" placeholder="0" value="' + esc(price) + '" oninput="renderTable();autoSave();">' +
-    '<input type="text" class="r-sum" placeholder="0" readonly style="background:#f0f0f0;">' +
-    '<button class="small" onclick="this.parentNode.remove();renderTable();autoSave();">✕</button>';
-  estContainer.appendChild(div);
-  renderTable();
-}
-function esc(s) { return String(s).replace(/"/g, "&quot;"); }
-function renderTable() {
-  var body = document.getElementById("p-estBody");
-  body.innerHTML = "";
-  var discount = parseFloat(document.getElementById("discount").value) || 0;
-  var total = 0;
-  var rows = estContainer.getElementsByClassName("est-row");
-  for (var i = 0; i < rows.length; i++) {
-    var r = rows[i];
-    var name  = r.querySelector(".r-name").value;
-    var unit  = r.querySelector(".r-unit").value;
-    var qty   = parseFloat(r.querySelector(".r-qty").value) || 0;
-    var price = parseFloat(r.querySelector(".r-price").value) || 0;
-    var base  = qty * price;
-    r.querySelector(".r-sum").value = base ? base.toFixed(2) : "";
-    if (name === "" && qty === 0 && price === 0) continue;
-    total += base;
-    var tr = document.createElement("tr");
-    tr.innerHTML =
-      "<td>" + (name || "—") + "</td>" +
-      "<td>" + (unit || "—") + "</td>" +
-      "<td>" + (qty || "—") + "</td>" +
-      "<td>" + (price || "—") + "</td>" +
-      "<td>" + (base ? base.toFixed(2) : "—") + "</td>";
-    body.appendChild(tr);
-  }
-  document.getElementById("p-total").textContent = fmt(total);
-  if (discount > 0) {
-    document.getElementById("rowDiscount").style.display = "table-row";
-    document.getElementById("p-discount-val").textContent = discount + "%";
-    document.getElementById("rowFinal").style.display = "table-row";
-    document.getElementById("p-total-final").textContent = fmt(total * (1 - discount/100));
-  } else {
-    document.getElementById("rowDiscount").style.display = "none";
-    document.getElementById("rowFinal").style.display = "none";
-  }
-}
-function fmt(n) { return n.toLocaleString("ru-RU", {minimumFractionDigits:2, maximumFractionDigits:2}); }
-function addDefaultRows() {
-  addRow("3D-печать модели (по весу изделия)", "г");
-  addRow("Постобработка (поддержки, шлифовка)", "шт.");
-  addRow("Покраска / грунтовка", "шт.");
-  addRow("Разработка 3D-модели (при необходимости)", "шт.");
-  addRow("Упаковка", "шт.");
-  addRow("Доставка", "шт.");
-}
-
 function openPreview() {
   if (!validate()) return;
   var previewHtml = document.getElementById("preview").innerHTML;
   var font = document.getElementById("docFont").value;
   var size = document.getElementById("docSize").value;
   var accent = document.getElementById("accentColor").value;
+  var theme = localStorage.getItem(THEME_KEY) || "classic";
+  var bgStyle = "";
+  if (currentBg) {
+    bgStyle = "background-image:url('" + currentBg + "');background-size:cover;background-position:center;background-repeat:no-repeat;";
+  }
+  var overlay = parseFloat(document.getElementById("bgOverlay").value) || 0.85;
   var styles =
     "<style>" +
-    "body{background:#fff;padding:40px 60px;font-family:" + font + ";font-size:" + size + ";line-height:1.55;color:#222;max-width:850px;margin:0 auto;}" +
-    "h1{text-align:center;font-size:22px;text-transform:uppercase;border-bottom:3px solid #2c3e50;padding-bottom:10px;}" +
+    "body{background:#fff;margin:0;padding:0;}" +
+    ".page{padding:40px 60px;font-family:" + font + ";font-size:" + size + ";line-height:1.55;color:#222;max-width:850px;margin:0 auto;position:relative;" + bgStyle + "}" +
+    ".page::before{content:'';position:absolute;inset:0;background:rgba(255,255,255," + overlay + ");z-index:0;pointer-events:none;}" +
+    ".page > *{position:relative;z-index:1;}" +
+    "h1{font-size:22px;color:#2c3e50;}" +
     ".subtitle{text-align:center;font-style:italic;}" +
     "h2{font-size:16px;color:#2c3e50;border-left:4px solid " + accent + ";padding-left:10px;margin-top:25px;}" +
     ".header-info{background:#f4f4f4;padding:12px 15px;}" +
-    "table{width:100%;border-collapse:collapse;font-size:0.93em;}" +
-    "th,td{border:1px solid #999;padding:8px;text-align:center;}" +
-    "th{background:#2c3e50;color:#fff;}" +
-    ".total-row{font-weight:bold;background:#ecf0f1;}" +
-    ".final-row{background:#fff2e0;font-size:1.07em;}" +
     ".contacts{background:" + accent + ";color:#fff;padding:15px 20px;}" +
     ".highlight{color:" + accent + ";font-weight:bold;}" +
     ".note{font-size:12px;color:#666;font-style:italic;}" +
     ".logo-block{text-align:center;}" +
-    ".gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:15px 0;}" +
-    ".gallery-grid img{width:100%;height:150px;object-fit:cover;border-radius:6px;border:1px solid #e0e0e0;}" +
+    ".gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:15px 0;}" +
+    ".gallery-card{text-align:center;border:1px solid #e0e0e0;border-radius:6px;padding:8px;background:rgba(255,255,255,0.7);}" +
+    ".gallery-card img{width:100%;height:140px;object-fit:cover;border-radius:4px;display:block;}" +
+    ".gallery-card .g-name{font-size:0.93em;font-weight:600;margin-top:6px;color:#2c3e50;line-height:1.3;}" +
+    ".gallery-card .g-price{font-size:1.07em;font-weight:bold;color:" + accent + ";margin-top:4px;}" +
+    ".price-note{background:#f4f4f4;padding:14px 18px;border-radius:6px;border-left:4px solid " + accent + ";font-size:0.93em;line-height:1.5;}" +
     ".sign-block{display:flex;justify-content:space-between;margin-top:35px;gap:30px;}" +
     ".sign-item{flex:1;text-align:center;font-size:0.93em;}" +
     ".sign-item img{max-height:70px;}" +
     ".sign-line{border-top:1px solid #333;margin-top:40px;padding-top:4px;font-size:0.86em;color:#555;}" +
-    "@media print{body{padding:20px;}}" +
+    /* темы */
+    ".theme-classic h1{text-align:center;text-transform:uppercase;border-bottom:3px solid #2c3e50;padding-bottom:10px;}" +
+    ".theme-classic .subtitle{text-align:center;}" +
+    ".theme-minimal h1{text-align:left;text-transform:none;font-weight:300;letter-spacing:1px;font-size:26px;border:none;padding:0;}" +
+    ".theme-minimal .subtitle{text-align:left;}" +
+    ".theme-minimal h2{border-left:none;border-bottom:1px solid #eee;padding-left:0;padding-bottom:5px;font-weight:400;text-transform:uppercase;letter-spacing:1px;font-size:14px;}" +
+    ".theme-modern h1{text-align:center;font-size:24px;padding:18px 20px;background:" + accent + ";color:#fff;margin:-40px -60px 20px -60px;}" +
+    ".theme-modern .subtitle{text-align:center;color:#666;padding-bottom:15px;border-bottom:2px solid #f0f0f0;}" +
+    ".theme-modern h2{border-left:none;border-bottom:2px solid " + accent + ";padding-left:0;padding-bottom:5px;display:inline-block;}" +
+    ".theme-modern .header-info{background:#f8f9fb;border-left:4px solid " + accent + ";border-radius:0;}" +
+    ".theme-modern .price-note{background:#f8f9fb;border-radius:0;}" +
+    ".theme-premium h1{text-align:center;text-transform:uppercase;letter-spacing:4px;font-weight:400;border-top:2px solid " + accent + ";border-bottom:2px solid " + accent + ";padding:12px 0;font-size:24px;}" +
+    ".theme-premium .subtitle{text-align:center;font-style:normal;font-size:0.86em;text-transform:uppercase;letter-spacing:2px;color:#888;}" +
+    ".theme-premium h2{border-left:none;text-align:center;text-transform:uppercase;letter-spacing:2px;font-size:14px;font-weight:600;padding:0;}" +
+    ".theme-premium .header-info{background:transparent;border-top:1px solid #eee;border-bottom:1px solid #eee;border-radius:0;text-align:center;}" +
+    ".theme-premium .header-info p{display:inline-block;margin:6px 15px;}" +
+    ".theme-premium .contacts{border-radius:0;}" +
+    ".theme-premium .price-note{background:transparent;border:1px solid #eee;border-radius:0;text-align:center;}" +
+    "@media print{body{padding:0;}.page{padding:20px;}}" +
     "</style>";
-  var html = "<html><head><meta charset='utf-8'>" + styles + "</head><body>" + previewHtml + "</body></html>";
+  var themeClass = "theme-" + theme;
+  var html = "<html><head><meta charset='utf-8'>" + styles + "</head><body>" +
+    "<div class='page " + themeClass + "'>" + previewHtml + "</div></body></html>";
   var modal = document.getElementById("modalPreview");
   var content = document.getElementById("modalContent");
   content.innerHTML = "<iframe style='width:100%;height:calc(92vh - 50px);border:none;background:#fff;' srcdoc='" +
@@ -1288,6 +1147,51 @@ function openPreview() {
 }
 function closePreview() { document.getElementById("modalPreview").classList.remove("open"); }
 document.addEventListener("keydown", function(e){ if (e.key === "Escape") closePreview(); });
+
+function buildDocStyles(accent, font, size, theme, bgUrl, overlay) {
+  var themeClass = "theme-" + theme;
+  var bgRule = bgUrl ? ("background-image:url('" + bgUrl + "');background-size:cover;background-position:center;") : "";
+  var s = "<style>" +
+    "body{font-family:" + font + ";font-size:" + size + ";line-height:1.5;margin:0;}" +
+    ".page{padding:40px;position:relative;" + bgRule + "}" +
+    (bgUrl ? ".page::before{content:'';position:absolute;inset:0;background:rgba(255,255,255," + overlay + ");z-index:0;} .page > *{position:relative;z-index:1;}" : "") +
+    "h1{font-size:22px;color:#2c3e50;}" +
+    ".subtitle{font-style:italic;}" +
+    "h2{font-size:16px;color:#2c3e50;border-left:4px solid " + accent + ";padding-left:10px;margin-top:25px;}" +
+    ".header-info{background:#f4f4f4;padding:12px 15px;}" +
+    ".contacts{background:" + accent + ";color:#fff;padding:15px 20px;}" +
+    ".highlight{color:" + accent + ";font-weight:bold;}" +
+    ".note{font-size:12px;color:#666;font-style:italic;}" +
+    ".logo-block{text-align:center;}" +
+    ".gallery-grid{}" +
+    ".gallery-card{text-align:center;border:1px solid #e0e0e0;padding:6px;}" +
+    ".gallery-card img{width:180px;height:140px;object-fit:cover;}" +
+    ".gallery-card .g-name{font-size:12px;font-weight:600;margin-top:4px;color:#2c3e50;}" +
+    ".gallery-card .g-price{font-size:13px;font-weight:bold;color:" + accent + ";margin-top:2px;}" +
+    ".price-note{background:#f4f4f4;padding:14px 18px;border-left:4px solid " + accent + ";}" +
+    ".sign-block{width:100%;margin-top:35px;}" +
+    ".sign-item{display:inline-block;width:45%;text-align:center;}" +
+    ".sign-item img{max-height:70px;}" +
+    ".sign-line{border-top:1px solid #333;margin-top:40px;padding-top:4px;font-size:0.86em;color:#555;}" +
+    /* темы */
+    ".theme-classic h1{text-align:center;text-transform:uppercase;border-bottom:3px solid #2c3e50;padding-bottom:10px;}" +
+    ".theme-classic .subtitle{text-align:center;}" +
+    ".theme-minimal h1{text-align:left;text-transform:none;font-weight:300;letter-spacing:1px;font-size:26px;border:none;padding:0;}" +
+    ".theme-minimal .subtitle{text-align:left;}" +
+    ".theme-modern h1{text-align:center;font-size:24px;padding:18px 20px;background:" + accent + ";color:#fff;margin:-40px -40px 20px -40px;}" +
+    ".theme-modern .subtitle{text-align:center;color:#666;padding-bottom:15px;border-bottom:2px solid #f0f0f0;}" +
+    ".theme-modern h2{border-left:none;border-bottom:2px solid " + accent + ";padding-left:0;padding-bottom:5px;}" +
+    ".theme-modern .header-info{background:#f8f9fb;border-left:4px solid " + accent + ";border-radius:0;}" +
+    ".theme-premium h1{text-align:center;text-transform:uppercase;letter-spacing:4px;font-weight:400;border-top:2px solid " + accent + ";border-bottom:2px solid " + accent + ";padding:12px 0;font-size:24px;}" +
+    ".theme-premium .subtitle{text-align:center;font-style:normal;font-size:0.86em;text-transform:uppercase;letter-spacing:2px;color:#888;}" +
+    ".theme-premium h2{border-left:none;text-align:center;text-transform:uppercase;letter-spacing:2px;font-size:14px;font-weight:600;padding:0;}" +
+    ".theme-premium .header-info{background:transparent;border-top:1px solid #eee;border-bottom:1px solid #eee;border-radius:0;text-align:center;}" +
+    ".theme-premium .header-info p{display:inline-block;margin:6px 15px;}" +
+    ".theme-premium .contacts{border-radius:0;}" +
+    ".theme-premium .price-note{background:transparent;border:1px solid #eee;border-radius:0;text-align:center;}" +
+    "</style>";
+  return { styles: s, themeClass: themeClass };
+}
 
 function downloadPDF() {
   if (!validate()) return;
@@ -1298,7 +1202,7 @@ function downloadPDF() {
     margin: [10, 10, 10, 10],
     filename: "Коммерческое_предложение" + (docName ? "_" + docName : "") + ".pdf",
     image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
   };
   html2pdf().set(opt).from(element).save().then(function(){
@@ -1314,35 +1218,15 @@ function downloadWord() {
   var accent = document.getElementById("accentColor").value;
   var font = document.getElementById("docFont").value;
   var size = document.getElementById("docSize").value;
-  var styles =
-    "<style>" +
-    "body{font-family:" + font + ";font-size:" + size + ";line-height:1.5;}" +
-    "h1{text-align:center;font-size:22px;text-transform:uppercase;border-bottom:3px solid #2c3e50;padding-bottom:10px;}" +
-    ".subtitle{text-align:center;font-style:italic;}" +
-    "h2{font-size:16px;color:#2c3e50;border-left:4px solid " + accent + ";padding-left:10px;margin-top:25px;}" +
-    ".header-info{background:#f4f4f4;padding:12px 15px;}" +
-    "table{width:100%;border-collapse:collapse;font-size:0.93em;}" +
-    "th,td{border:1px solid #999;padding:8px;text-align:center;}" +
-    "th{background:#2c3e50;color:#fff;}" +
-    ".total-row{font-weight:bold;background:#ecf0f1;}" +
-    ".final-row{background:#fff2e0;font-size:1.07em;}" +
-    ".contacts{background:" + accent + ";color:#fff;padding:15px 20px;}" +
-    ".highlight{color:" + accent + ";font-weight:bold;}" +
-    ".note{font-size:12px;color:#666;font-style:italic;}" +
-    ".logo-block{text-align:center;}" +
-    ".gallery-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}" +
-    ".gallery-grid img{width:200px;height:150px;object-fit:cover;border:1px solid #e0e0e0;}" +
-    ".sign-block{width:100%;margin-top:35px;}" +
-    ".sign-item{display:inline-block;width:45%;text-align:center;}" +
-    ".sign-item img{max-height:70px;}" +
-    ".sign-line{border-top:1px solid #333;margin-top:40px;padding-top:4px;font-size:0.86em;color:#555;}" +
-    "</style>";
+  var theme = localStorage.getItem(THEME_KEY) || "classic";
+  var overlay = parseFloat(document.getElementById("bgOverlay").value) || 0.85;
+  var built = buildDocStyles(accent, font, size, theme, currentBg, overlay);
   var html =
     "<html xmlns:o='urn:schemas-microsoft-com:office:office' " +
     "xmlns:w='urn:schemas-microsoft-com:office:word' " +
     "xmlns='http://www.w3.org/TR/REC-html40'>" +
-    "<head><meta charset='utf-8'>" + styles + "</head>" +
-    "<body>" + previewHtml + "</body></html>";
+    "<head><meta charset='utf-8'>" + built.styles + "</head>" +
+    "<body><div class='page " + built.themeClass + "'>" + previewHtml + "</div></body></html>";
   var blob = new Blob(["\ufeff", html], {type: "application/msword"});
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
@@ -1355,20 +1239,30 @@ function downloadWord() {
 
 (function init() {
   restoreGallery();
-  restoreCustomModels();
-  renderCategoryFilter();
-  renderCatalog();
+  restoreBackground();
+  renderGalleryForm();
+  renderGalleryDoc();
+
+  // темы
+  var savedTheme = localStorage.getItem(THEME_KEY) || "classic";
+  applyTheme(savedTheme);
+  var btns = document.querySelectorAll(".theme-btn");
+  for (var b = 0; b < btns.length; b++) {
+    btns[b].addEventListener("click", function(){
+      applyTheme(this.dataset.theme);
+      autoSave();
+    });
+  }
 
   if (restoreDraft()) {
+    applyBackground();
     updateAll();
-    calcUpdate();
     setStatus("Черновик восстановлен", false);
   } else {
-    addDefaultRows();
     autoNumber();
     applyDocStyle();
+    applyBackground();
     updateAll();
-    calcUpdate();
   }
   for (var i = 0; i < requiredFields.length; i++) {
     (function(id){
